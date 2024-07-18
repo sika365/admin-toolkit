@@ -1,17 +1,9 @@
-package pkg
+package registrar
 
 import (
 	"errors"
 	"strings"
 )
-
-type Package interface {
-	Init() error
-	Name() string
-	Error() error
-}
-
-type Packages []Package
 
 var (
 	ErrPackageAlreadyExists = errors.New("package already exists")
@@ -33,7 +25,13 @@ type reg struct {
 	err      error
 }
 
-func NewRegistrar() Registrar {
+var registrar *reg
+
+func init() {
+	registrar = New().(*reg)
+}
+
+func New() Registrar {
 	r := &reg{
 		packages: make(map[string]Package),
 		err:      nil,
@@ -41,10 +39,16 @@ func NewRegistrar() Registrar {
 	return r
 }
 
+func Instance() *reg {
+	return registrar
+}
+
+func Error() error { return registrar.Error() }
 func (r *reg) Error() error {
 	return r.err
 }
 
+func Init() (err error) { return registrar.Init() }
 func (r *reg) Init() (err error) {
 	for _, p := range r.packages {
 		if err := p.Init(); err != nil {
@@ -53,6 +57,9 @@ func (r *reg) Init() (err error) {
 	}
 	return nil
 }
+
+// Get returns package by name
+func Get(name string) (pkg Package, err error) { return registrar.Get(name) }
 
 // Get returns package by name
 func (r *reg) Get(name string) (pkg Package, err error) {
@@ -67,6 +74,10 @@ func (r *reg) Get(name string) (pkg Package, err error) {
 	}
 }
 
+// Add adds package in registrar
+func Add(pkgs ...Package) Registrar { return registrar.Add(pkgs...) }
+
+// Add adds package in registrar
 func (r *reg) Add(pkgs ...Package) Registrar {
 	if r.err != nil {
 		return r
@@ -78,9 +89,13 @@ func (r *reg) Add(pkgs ...Package) Registrar {
 				r.packages[pkg.Name()] = pkg
 			}
 		}
+		r.err = nil
 		return r
 	}
 }
+
+// Del implements Registrar.
+func Del(name string) Registrar { return registrar.Del(name) }
 
 // Del implements Registrar.
 func (r *reg) Del(name string) Registrar {
@@ -93,6 +108,9 @@ func (r *reg) Del(name string) Registrar {
 		return r
 	}
 }
+
+// Replace implements Registrar.
+func Replace(name string, newPkg Package) Registrar { return registrar.Replace(name, newPkg) }
 
 // Replace implements Registrar.
 func (r *reg) Replace(name string, newPkg Package) Registrar {

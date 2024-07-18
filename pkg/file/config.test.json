@@ -43,6 +43,7 @@
     "crypto": "md5",
     "root": "../../samples/images",
     "filters": {
+      "barcode_pattern": "^(?P<title>\\d+)(?:[\\.|_].*)?$",
       "content_types": "image/.*",
       "max_depth": 2
     },

@@ -32,7 +32,7 @@ func newRest(logic Logic, h *simutils.HttpServer) (Rest, error) {
 	sg := h.
 		// use prefix group
 		PrefixGroup().
-		// [prefixgroup path]/images
+		// [prefixgroup path]/files
 		Group("/files")
 	{
 		sg.POST("", r.ReadFiles)

@@ -9,8 +9,9 @@ import (
 
 	"github.com/sika365/admin-tools/config"
 	"github.com/sika365/admin-tools/context"
-	"github.com/sika365/admin-tools/pkg"
 	"github.com/sika365/admin-tools/pkg/file"
+	"github.com/sika365/admin-tools/pkg/image"
+	"github.com/sika365/admin-tools/registrar"
 )
 
 type Service struct {
@@ -47,9 +48,9 @@ func (svc *Service) Init() error {
 	} else if err := svc.UseContext(h.Echo()); err != nil {
 		return err
 		// Initializing packages
-	} else if err := pkg.
-		NewRegistrar().
+	} else if err := registrar.
 		Add(file.New(h, db)).
+		Add(image.New(h, db)).
 		// Add more package
 		Init(); err != nil {
 		return err

@@ -1,13 +1,14 @@
-package file
+package image
 
 import (
 	simutils "github.com/alifakhimi/simple-utils-go"
-
 	"github.com/sika365/admin-tools/registrar"
 )
 
 const (
-	PackageName = "file"
+	PackageName           = "image"
+	ImageContentTypeRegex = `image/.*`
+	ImageBarcodeRegex     = `^(?P<title>\d+)(?:[\.|_].*)?$`
 )
 
 type impl struct {

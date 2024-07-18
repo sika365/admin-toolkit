@@ -13,7 +13,7 @@ func (fs Files) Add(file *File) Files {
 
 func (fs Files) AddFiles(contentType *regexp.Regexp, paths ...string) Files {
 	for _, path := range paths {
-		if f := NewFile(contentType, path); f.err != nil {
+		if f := NewFile(path, contentType, nil); f.err != nil {
 			return fs
 		} else {
 			fs = append(fs, f)

@@ -8,7 +8,7 @@ import (
 )
 
 // WalkDir recursively walks the directory up to the specified depth.
-func WalkDir(root string, maxDepth int, reContentType *regexp.Regexp) (files MapFiles, err error) {
+func WalkDir(root string, maxDepth int, reContentType *regexp.Regexp, reName *regexp.Regexp) (files MapFiles, err error) {
 	files = NewMapFiles()
 
 	err = filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
@@ -20,7 +20,7 @@ func WalkDir(root string, maxDepth int, reContentType *regexp.Regexp) (files Map
 		currentDepth := len(strings.Split(filepath.ToSlash(path), "/")) - len(strings.Split(filepath.ToSlash(root), "/"))
 
 		if currentDepth <= maxDepth && !d.IsDir() {
-			if file := NewFile(reContentType, path); file.Error() == nil {
+			if file := NewFile(path, reContentType, reName); file.Error() == nil {
 				files.Add(file)
 			} else {
 				// let continue

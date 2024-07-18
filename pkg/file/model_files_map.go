@@ -29,7 +29,7 @@ func (fs MapFiles) Add(file *File) MapFiles {
 
 func (fs MapFiles) FromFiles(contentType *regexp.Regexp, paths ...string) MapFiles {
 	for _, path := range paths {
-		if f := NewFile(contentType, path); f.err != nil {
+		if f := NewFile(path, contentType, nil); f.err != nil {
 			return fs
 		} else {
 			fs[f.Hash] = f

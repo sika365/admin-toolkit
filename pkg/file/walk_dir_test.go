@@ -15,11 +15,13 @@ func Test_WalkDir(t *testing.T) {
 	testReq := test.PreparingTest()
 	filters := url.Values(cast.ToStringMapStringSlice(testReq.Meta["filters"]))
 	reContentType := regexp.MustCompile(cast.ToString(cast.ToStringMap(testReq.Meta["filters"])["content_types"]))
+	reBarcodePattern := regexp.MustCompile(cast.ToString(cast.ToStringMap(testReq.Meta["filters"])["barcode_pattern"]))
 
 	type args struct {
 		root          string
 		maxDepth      int
 		reContentType *regexp.Regexp
+		reName        *regexp.Regexp
 	}
 	tests := []struct {
 		name    string
@@ -33,6 +35,7 @@ func Test_WalkDir(t *testing.T) {
 				root:          cast.ToString(testReq.Meta["root"]),
 				maxDepth:      cast.ToInt(filters.Get("max_depth")),
 				reContentType: reContentType,
+				reName:        reBarcodePattern,
 			},
 			want: Files{}.AddFiles(
 				reContentType,
@@ -46,7 +49,7 @@ func Test_WalkDir(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := WalkDir(tt.args.root, tt.args.maxDepth, tt.args.reContentType)
+			got, err := WalkDir(tt.args.root, tt.args.maxDepth, tt.args.reContentType, tt.args.reName)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("walkDir() error = %v, wantErr %v", err, tt.wantErr)
 				return

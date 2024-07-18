@@ -11,7 +11,7 @@ import (
 )
 
 type Repo interface {
-	Create(ctx *context.Context, db *gorm.DB, files Files) error
+	Create(ctx *context.Context, db *gorm.DB, files ...*File) error
 	Read(ctx *context.Context, db *gorm.DB, filters url.Values) (MapFiles, error)
 	Update(ctx *context.Context, db *gorm.DB, file *File, filters url.Values) error
 	Delete(ctx *context.Context, db *gorm.DB, id database.PID, filters url.Values) error
@@ -38,7 +38,7 @@ func (i *repo) Read(ctx *context.Context, db *gorm.DB, filters url.Values) (file
 }
 
 // Create implements Repo.
-func (i *repo) Create(ctx *context.Context, db *gorm.DB, files Files) error {
+func (i *repo) Create(ctx *context.Context, db *gorm.DB, files ...*File) error {
 	if len(files) == 0 {
 		return nil
 	} else if err := db.CreateInBatches(files, 100).Error; err != nil {
