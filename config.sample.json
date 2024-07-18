@@ -1,0 +1,63 @@
+{
+  "name": "sika365-admin-toolkit",
+  "display_name": "Sika365 Admin Toolkit",
+  "version": "0.0.1",
+  "description": "Sika365 Admin Toolkit",
+  "website": "https://sika365.com",
+  "author": "https://github.com/sika365/",
+  "homepage": "https://developer.sika365.com/admin-toolkit",
+  "http_servers": {
+    "main": {
+      "address": ":8080",
+      "prefix": "/api/v1",
+      "debug": true
+    }
+  },
+  "clients": {
+    "sika365": {
+      "base_url": "http://server:serverport/admin/api/v1",
+      "proxy": "",
+      "token": "",
+      "header": {
+        "Content-Type": [
+          "application/json"
+        ],
+        "Accept": [
+          "application/json"
+        ]
+      },
+      "debug": true
+    }
+  },
+  "databases": {
+    "db": {
+      "driver": 3,
+      "dsn": "data.db",
+      "debug": true,
+      "logger": {
+        "colorful": true,
+        "log_level": 4
+      }
+    }
+  },
+  "meta": {
+    "crypto": "md5",
+    "root": "./import",
+    "filters": {
+      "barcode_pattern": "^(?P<title>\\d+)(?:[\\.|_].*)?$",
+      "content_types": "image/.*",
+      "max_depth": 2
+    },
+    "mock": {}
+  },
+  "banners_dict": {
+    "font_name": "http://www.figlet.org/fontdb.cgis"
+  },
+  "banners": [
+    {
+      "text": "|OTAD-KMS|",
+      "font": "small",
+      "color": "blue"
+    }
+  ]
+}

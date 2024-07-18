@@ -17,9 +17,9 @@ import (
 type Logic interface {
 	Find(ctx *context.Context, filters url.Values) (files Images, err error)
 	Create(ctx *context.Context, files Images, batchSize int) error
+	ReadFiles(ctx *context.Context, root string, maxDepth int, reContentType *regexp.Regexp, reBarcode *regexp.Regexp, filters url.Values) (files MapImages, err error)
+	ReadBarcodeImageFiles(ctx *context.Context, root string, maxDepth int, reContentType *regexp.Regexp, filters url.Values) (files MapImages, err error)
 	Sync(ctx *context.Context, root string, maxDepth int, filters url.Values) (images Images, err error)
-	Load(ctx *context.Context, files MapImages, batchSize int) (err error)
-	ReadFiles(ctx *context.Context, root string, maxDepth int, reContentType *regexp.Regexp, filters url.Values) (files MapImages, err error)
 }
 
 type logic struct {
@@ -96,6 +96,36 @@ func (l *logic) Create(ctx *context.Context, images Images, batchSize int) error
 	return nil
 }
 
+func (l *logic) ReadFiles(ctx *context.Context, root string, maxDepth int, reContentType *regexp.Regexp, reBarcode *regexp.Regexp, filters url.Values) (files MapImages, err error) {
+	if reContentType, err := regexp.Compile(ImageContentTypeRegex); err != nil {
+		return nil, err
+	} else if reBarcode, err := regexp.Compile(ImageBarcodeRegex); err != nil {
+		return nil, err
+	} else if filteredImages, _ := file.WalkDir(root, maxDepth, reContentType, nil); len(filteredImages) == 0 {
+		logrus.Info("!!! no images found !!!")
+		return nil, nil
+	} else if _, files = FromFiles(filteredImages, reBarcode); len(files) == 0 {
+		logrus.Info("xxx convert File to Image failed xxx")
+		return files, nil
+	} else {
+		return files, nil
+	}
+}
+
+func (l *logic) ReadBarcodeImageFiles(ctx *context.Context, root string, maxDepth int, reContentType *regexp.Regexp, filters url.Values) (files MapImages, err error) {
+	if reBarcode, err := regexp.Compile(ImageBarcodeRegex); err != nil {
+		return nil, err
+	} else if mapImages, err := l.ReadFiles(ctx, root, maxDepth, reContentType, reBarcode, filters); err != nil {
+		return nil, nil
+	} else if q := l.conn.DB.WithContext(ctx.Request().Context()); q == nil {
+		return nil, simutils.ErrInvalidDatabaseConnection
+	} else if _, err := l.repo.ReadFiles(ctx, q, mapImages, filters); err != nil {
+		return nil, err
+	} else {
+		return mapImages, nil
+	}
+}
+
 func (l *logic) Sync(ctx *context.Context, root string, maxDepth int, filters url.Values) (images Images, err error) {
 	if mfiles, err := l.ReadBarcodeImageFiles(ctx, root, maxDepth, nil, filters); err != nil {
 		return nil, err
@@ -105,44 +135,5 @@ func (l *logic) Sync(ctx *context.Context, root string, maxDepth int, filters ur
 		return nil, err
 	} else {
 		return images, nil
-	}
-}
-
-func (l *logic) Load(ctx *context.Context, files MapImages, batchSize int) (err error) {
-	return nil
-}
-
-func (l *logic) ReadFiles(ctx *context.Context, root string, maxDepth int, reContentType *regexp.Regexp, filters url.Values) (files MapImages, err error) {
-	if reContentType, err := regexp.Compile(ImageContentTypeRegex); err != nil {
-		return nil, err
-	} else if reBarcode, err := regexp.Compile(ImageBarcodeRegex); err != nil {
-		return nil, err
-	} else if filteredImages, _ := file.WalkDir(root, maxDepth, reContentType, nil); len(filteredImages) == 0 {
-		logrus.Info("!!! no images found !!!")
-		return nil, nil
-	} else if _, files = FromFiles(filteredImages, reBarcode); len(files) == 0 {
-		return files, nil
-	} else {
-		return files, nil
-	}
-}
-
-func (l *logic) ReadBarcodeImageFiles(ctx *context.Context, root string, maxDepth int, reContentType *regexp.Regexp, filters url.Values) (files MapImages, err error) {
-	if reContentType, err := regexp.Compile(ImageContentTypeRegex); err != nil {
-		return nil, err
-	} else if reBarcode, err := regexp.Compile(ImageBarcodeRegex); err != nil {
-		return nil, err
-	} else if filteredFiles, _ := file.WalkDir(root, maxDepth, reContentType, reBarcode); len(filteredFiles) == 0 {
-		logrus.Info("!!! no images found !!!")
-		return nil, nil
-	} else if _, mapImages := FromFiles(filteredFiles, reBarcode); len(mapImages) == 0 {
-		logrus.Info("xxx convert File to Image failed xxx")
-		return nil, nil
-	} else if q := l.conn.DB.WithContext(ctx.Request().Context()); q == nil {
-		return nil, simutils.ErrInvalidDatabaseConnection
-	} else if _, err := l.repo.ReadFiles(ctx, q, mapImages, filters); err != nil {
-		return nil, err
-	} else {
-		return mapImages, nil
 	}
 }

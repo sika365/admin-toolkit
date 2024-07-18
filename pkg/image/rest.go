@@ -86,7 +86,7 @@ func (r *rest) Get(ectx echo.Context) error {
 		return file.ErrInvalidContentTypesValue
 	} else if reContentType, err := regexp.Compile(*request.ContentTypes); err != nil {
 		return err
-	} else if images, err := r.logic.ReadFiles(ctx, *request.Root, *request.MaxDepth, reContentType, filters); err != nil {
+	} else if images, err := r.logic.ReadFiles(ctx, *request.Root, *request.MaxDepth, reContentType, nil, filters); err != nil {
 		return err
 	} else {
 		return simutils.Reply(ctx, http.StatusOK, nil,
