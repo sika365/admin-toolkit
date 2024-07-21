@@ -58,7 +58,6 @@ func BuildGormQuery(ctx *context.Context, db *gorm.DB, queryParams url.Values) *
 			}
 			qb = qb.Order(clause.OrderBy{Columns: orderByColumns})
 		case "includes":
-			panic("unimplemented")
 		default:
 			if len(values) == 1 {
 				qb.Where(fmt.Sprintf("%s = ?", field), values)

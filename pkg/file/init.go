@@ -10,7 +10,7 @@ const (
 	PackageName = "file"
 )
 
-type impl struct {
+type pkg struct {
 	rest  Rest
 	logic Logic
 	repo  Repo
@@ -21,7 +21,7 @@ type impl struct {
 }
 
 func New(h *simutils.HttpServer, db *simutils.DBConnection) registrar.Package {
-	i := &impl{
+	i := &pkg{
 		h:  h,
 		db: db,
 	}
@@ -36,7 +36,7 @@ func New(h *simutils.HttpServer, db *simutils.DBConnection) registrar.Package {
 	}
 }
 
-func (i *impl) Init() error {
+func (i *pkg) Init() error {
 	// update db schema
 	if err := i.Migrator(); err != nil {
 		return err
@@ -45,22 +45,22 @@ func (i *impl) Init() error {
 	}
 }
 
-func (i *impl) Name() string {
+func (i *pkg) Name() string {
 	return PackageName
 }
 
-func (i *impl) Error() error {
+func (i *pkg) Error() error {
 	return i.err
 }
 
-func (i *impl) GetRest() Rest {
+func (i *pkg) GetRest() Rest {
 	return i.rest
 }
 
-func (i *impl) GetLogic() Logic {
+func (i *pkg) GetLogic() Logic {
 	return i.logic
 }
 
-func (i *impl) GetRepo() Repo {
+func (i *pkg) GetRepo() Repo {
 	return i.repo
 }

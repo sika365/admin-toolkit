@@ -11,6 +11,7 @@ import (
 	"github.com/sika365/admin-tools/context"
 	"github.com/sika365/admin-tools/pkg/file"
 	"github.com/sika365/admin-tools/pkg/image"
+	"github.com/sika365/admin-tools/pkg/product"
 	"github.com/sika365/admin-tools/registrar"
 )
 
@@ -51,6 +52,7 @@ func (svc *Service) Init() error {
 	} else if err := registrar.
 		Add(file.New(h, db)).
 		Add(image.New(h, db)).
+		Add(product.New(h, db)).
 		// Add more package
 		Init(); err != nil {
 		return err

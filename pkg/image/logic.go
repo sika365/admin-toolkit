@@ -16,10 +16,10 @@ import (
 
 type Logic interface {
 	Find(ctx *context.Context, filters url.Values) (files Images, err error)
-	Create(ctx *context.Context, files Images, batchSize int) error
+	Save(ctx *context.Context, files Images, replace bool, batchSize int) error
 	ReadFiles(ctx *context.Context, root string, maxDepth int, reContentType *regexp.Regexp, reBarcode *regexp.Regexp, filters url.Values) (files MapImages, err error)
 	ReadBarcodeImageFiles(ctx *context.Context, root string, maxDepth int, reContentType *regexp.Regexp, filters url.Values) (files MapImages, err error)
-	Sync(ctx *context.Context, root string, maxDepth int, filters url.Values) (images Images, err error)
+	Sync(ctx *context.Context, root string, maxDepth int, replace bool, filters url.Values) (images MapImages, err error)
 }
 
 type logic struct {
@@ -46,7 +46,7 @@ func (l *logic) Find(ctx *context.Context, filters url.Values) (files Images, er
 	}
 }
 
-func (l *logic) Create(ctx *context.Context, images Images, batchSize int) error {
+func (l *logic) Save(ctx *context.Context, images Images, replace bool, batchSize int) error {
 	pool := pond.New(batchSize, 0)
 
 	for _, img := range images {
@@ -126,14 +126,14 @@ func (l *logic) ReadBarcodeImageFiles(ctx *context.Context, root string, maxDept
 	}
 }
 
-func (l *logic) Sync(ctx *context.Context, root string, maxDepth int, filters url.Values) (images Images, err error) {
+func (l *logic) Sync(ctx *context.Context, root string, maxDepth int, replace bool, filters url.Values) (images MapImages, err error) {
 	if mfiles, err := l.ReadBarcodeImageFiles(ctx, root, maxDepth, nil, filters); err != nil {
 		return nil, err
-	} else if images = mfiles.GetValues(); len(images) == 0 {
+	} else if len(mfiles) == 0 {
 		return nil, nil
-	} else if err := l.Create(ctx, images, 5); err != nil {
+	} else if err := l.Save(ctx, mfiles.GetValues(), replace, 5); err != nil {
 		return nil, err
 	} else {
-		return images, nil
+		return mfiles, nil
 	}
 }

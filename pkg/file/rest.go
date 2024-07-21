@@ -11,7 +11,7 @@ import (
 )
 
 var (
-	ErrInvalidMaxDepthValue     = errors.New("invalid max depth value")
+	ErrInvalidMaxDepthValue     = errors.New("invalid max depth value, 10 is max")
 	ErrInvalidContentTypesValue = errors.New("invalid content types value")
 	ErrEmptyRootNotValid        = errors.New("empty root is not valid")
 )

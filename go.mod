@@ -3,14 +3,14 @@ module github.com/sika365/admin-tools
 go 1.22.3
 
 require (
-	github.com/alifakhimi/simple-service-go v0.0.0-20240712134927-dbb48f5b9430
-	github.com/alifakhimi/simple-utils-go v0.0.2
-	github.com/alifakhimi/simple-utils-go/simrest v0.0.0-20240712132127-f941b8831d06
+	github.com/alifakhimi/simple-service-go v0.0.0-20240719125813-1974a13ecc21
+	github.com/alifakhimi/simple-utils-go v0.0.4
+	github.com/alifakhimi/simple-utils-go/simrest v0.0.0-20240719124859-4ae86506f79e
 	github.com/gabriel-vasile/mimetype v1.4.4
 	github.com/labstack/echo/v4 v4.12.0
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cast v1.6.0
-	gitlab.sikapp.ir/sikatech/eshop/eshop-sdk-go-v1 v1.11.185
+	gitlab.sikapp.ir/sikatech/eshop/eshop-sdk-go-v1 v1.11.187
 )
 
 require (
@@ -71,7 +71,7 @@ require (
 	github.com/yaa110/go-persian-calendar v1.1.5 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/crypto v0.25.0 // indirect
-	golang.org/x/exp v0.0.0-20240707233637-46b078467d37 // indirect
+	golang.org/x/exp v0.0.0-20240716175740-e3f259677ff7 // indirect
 	golang.org/x/net v0.27.0 // indirect
 	golang.org/x/sync v0.7.0 // indirect
 	golang.org/x/sys v0.22.0 // indirect

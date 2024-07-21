@@ -1,4 +1,4 @@
-package image
+package product
 
 import (
 	simutils "github.com/alifakhimi/simple-utils-go"
@@ -6,13 +6,10 @@ import (
 )
 
 const (
-	PackageName           = "image"
-	DefaultRoot           = "./images"
-	ImageContentTypeRegex = `image/.*`
-	ImageBarcodeRegex     = `^(?P<title>\d+)(?:[\.|_].*)?$`
+	PackageName = "product"
 )
 
-type pkg struct {
+type impl struct {
 	rest  Rest
 	logic Logic
 	repo  Repo
@@ -23,7 +20,7 @@ type pkg struct {
 }
 
 func New(h *simutils.HttpServer, db *simutils.DBConnection) registrar.Package {
-	i := &pkg{
+	i := &impl{
 		h:  h,
 		db: db,
 	}
@@ -38,7 +35,7 @@ func New(h *simutils.HttpServer, db *simutils.DBConnection) registrar.Package {
 	}
 }
 
-func (i *pkg) Init() error {
+func (i *impl) Init() error {
 	// update db schema
 	if err := i.Migrator(); err != nil {
 		return err
@@ -47,22 +44,22 @@ func (i *pkg) Init() error {
 	}
 }
 
-func (i *pkg) Name() string {
+func (i *impl) Name() string {
 	return PackageName
 }
 
-func (i *pkg) Error() error {
+func (i *impl) Error() error {
 	return i.err
 }
 
-func (i *pkg) GetRest() Rest {
+func (i *impl) GetRest() Rest {
 	return i.rest
 }
 
-func (i *pkg) GetLogic() Logic {
+func (i *impl) GetLogic() Logic {
 	return i.logic
 }
 
-func (i *pkg) GetRepo() Repo {
+func (i *impl) GetRepo() Repo {
 	return i.repo
 }

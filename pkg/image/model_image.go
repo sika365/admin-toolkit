@@ -11,6 +11,10 @@ import (
 
 type Images []*Image
 
+func (imgs Images) Add(img *Image) Images {
+	return imgs
+}
+
 type Image struct {
 	*models.Image
 	FileID database.PID `json:"file_id,omitempty" gorm:"default:null"`

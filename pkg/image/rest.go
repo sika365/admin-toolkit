@@ -6,15 +6,15 @@ import (
 
 	simutils "github.com/alifakhimi/simple-utils-go"
 	"github.com/labstack/echo/v4"
+
 	"github.com/sika365/admin-tools/context"
 	"github.com/sika365/admin-tools/pkg/file"
+	"github.com/sika365/admin-tools/utils"
 )
 
-// Errors
-var ()
-
 type Rest interface {
-	Get(ctx echo.Context) error
+	Scan(ctx echo.Context) error
+	Sync(ectx echo.Context) error
 }
 
 type rest struct {
@@ -32,67 +32,58 @@ func newRest(logic Logic, h *simutils.HttpServer) (Rest, error) {
 		// [prefixgroup path]/images
 		Group("/images")
 	{
+		sg.POST("", r.Scan)
 		sg.POST("/sync", r.Sync)
-		sg.POST("", r.Get)
 	}
 
 	return r, nil
 }
 
-func (r *rest) Sync(ectx echo.Context) error {
-	var request = struct {
-		Root     *string `json:"root,omitempty"`
-		MaxDepth *int    `json:"max_depth,omitempty"`
-	}{}
+func (r *rest) Scan(ectx echo.Context) error {
+	var request ScanRequest
 	if ctx, ok := ectx.(*context.Context); !ok {
 		return nil
 	} else if err := ctx.Bind(&request); err != nil {
 		return err
 	} else if filters := ctx.QueryParams(); false {
 		return nil
-	} else if request.MaxDepth == nil || *request.MaxDepth < 0 {
+	} else if request.MaxDepth = utils.Max(request.MaxDepth, -1); request.MaxDepth > 10 {
 		return file.ErrInvalidMaxDepthValue
-	} else if request.Root == nil || *request.Root == "" {
+	} else if request.Root = utils.DefaultIfZero(request.Root, DefaultRoot); request.Root == "" {
 		return file.ErrEmptyRootNotValid
-	} else if images, err := r.logic.Sync(ctx, *request.Root, *request.MaxDepth, filters); err != nil {
+	} else if request.ContentTypes = utils.DefaultIfZero(request.ContentTypes, ImageContentTypeRegex); request.ContentTypes == "" {
+		return file.ErrInvalidContentTypesValue
+	} else if reContentType, err := regexp.Compile(request.ContentTypes); err != nil {
+		return err
+	} else if images, err := r.logic.ReadFiles(ctx, request.Root, request.MaxDepth, reContentType, nil, filters); err != nil {
 		return err
 	} else {
-		return simutils.Reply(ctx, http.StatusOK, nil,
-			map[string]interface{}{
-				"images": images,
-			},
+		return simutils.ReplyTemplate(ctx, http.StatusOK, nil,
+			&ScanResponse{Data: images},
 			simutils.CreatePaginateTemplate(len(images), 0, len(images)),
 		)
 	}
 }
 
-func (r *rest) Get(ectx echo.Context) error {
-	var request = struct {
-		Root         *string `json:"root,omitempty"`
-		MaxDepth     *int    `json:"max_depth,omitempty"`
-		ContentTypes *string `json:"content_types,omitempty"`
-	}{}
+func (r *rest) Sync(ectx echo.Context) error {
+	var request SyncRequest
 	if ctx, ok := ectx.(*context.Context); !ok {
 		return nil
 	} else if err := ctx.Bind(&request); err != nil {
 		return err
 	} else if filters := ctx.QueryParams(); false {
 		return nil
-	} else if request.MaxDepth == nil || *request.MaxDepth < 0 {
+	} else if request.MaxDepth = utils.Max(request.MaxDepth, -1); request.MaxDepth > 10 {
 		return file.ErrInvalidMaxDepthValue
-	} else if request.Root == nil || *request.Root == "" {
+	} else if request.Root = utils.DefaultIfZero(request.Root, DefaultRoot); request.Root == "" {
 		return file.ErrEmptyRootNotValid
-	} else if request.ContentTypes == nil || *request.ContentTypes == "" {
+	} else if request.ContentTypes = utils.DefaultIfZero(request.ContentTypes, ImageContentTypeRegex); request.ContentTypes == "" {
 		return file.ErrInvalidContentTypesValue
-	} else if reContentType, err := regexp.Compile(*request.ContentTypes); err != nil {
-		return err
-	} else if images, err := r.logic.ReadFiles(ctx, *request.Root, *request.MaxDepth, reContentType, nil, filters); err != nil {
+	} else if images, err := r.logic.Sync(ctx, request.Root, request.MaxDepth, request.Replace, filters); err != nil {
 		return err
 	} else {
-		return simutils.Reply(ctx, http.StatusOK, nil,
-			map[string]interface{}{
-				"images": images,
-			},
+		return simutils.ReplyTemplate(ctx, http.StatusOK, nil,
+			&SyncResponse{Data: images},
 			simutils.CreatePaginateTemplate(len(images), 0, len(images)),
 		)
 	}
