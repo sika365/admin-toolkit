@@ -12,5 +12,5 @@ type ProductRecord struct {
 	Category       string                   `json:"category,omitempty"`
 	CategoryRecord *category.CategoryRecord `json:"category_record,omitempty" gorm:"foreignKey:Category;references:Title"`
 	ProductID      database.PID             `json:"product_id,omitempty"`
-	Product        *Product                 `json:"product,omitempty"`
+	Product        *LocalProduct            `json:"product,omitempty"`
 }

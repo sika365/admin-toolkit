@@ -12,8 +12,8 @@ import (
 
 type Repo interface {
 	Create(ctx *context.Context, db *gorm.DB, value any) error
-	Read(ctx *context.Context, db *gorm.DB, filters url.Values) (Categories, error)
-	Update(ctx *context.Context, db *gorm.DB, category *Category, filters url.Values) error
+	Read(ctx *context.Context, db *gorm.DB, filters url.Values) (LocalCategories, error)
+	Update(ctx *context.Context, db *gorm.DB, category *LocalCategory, filters url.Values) error
 	Delete(ctx *context.Context, db *gorm.DB, id database.PID, filters url.Values) error
 	Clear(ctx *context.Context, db *gorm.DB) error
 }
@@ -36,8 +36,8 @@ func (i *repo) Create(ctx *context.Context, db *gorm.DB, value any) error {
 }
 
 // Read fetches categories with filters
-func (i *repo) Read(ctx *context.Context, db *gorm.DB, filters url.Values) (Categories, error) {
-	var stored Categories
+func (i *repo) Read(ctx *context.Context, db *gorm.DB, filters url.Values) (LocalCategories, error) {
+	var stored LocalCategories
 	if err := utils.
 		BuildGormQuery(ctx, db, filters).
 		Find(&stored).Error; err != nil {
@@ -48,7 +48,7 @@ func (i *repo) Read(ctx *context.Context, db *gorm.DB, filters url.Values) (Cate
 }
 
 // Update implements Repo.
-func (i *repo) Update(ctx *context.Context, db *gorm.DB, category *Category, filters url.Values) error {
+func (i *repo) Update(ctx *context.Context, db *gorm.DB, category *LocalCategory, filters url.Values) error {
 	panic("unimplemented")
 }
 

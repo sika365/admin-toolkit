@@ -9,13 +9,13 @@ import (
 	"gitlab.sikapp.ir/sikatech/eshop/eshop-sdk-go-v1/models"
 )
 
-type Images []*Image
+type LocalImages []*LocalImage
 
-func (imgs Images) Add(img *Image) Images {
+func (imgs LocalImages) Add(img *LocalImage) LocalImages {
 	return imgs
 }
 
-type Image struct {
+type LocalImage struct {
 	models.CommonTableFields
 	ImageID database.PID  `json:"image_id,omitempty"`
 	Image   *models.Image `json:"image,omitempty"`
@@ -23,11 +23,11 @@ type Image struct {
 	File    *file.File    `json:"file,omitempty"`
 }
 
-func (Image) TableName() string {
+func (LocalImage) TableName() string {
 	return "local_images"
 }
 
-func (i *Image) Hash() string {
+func (i *LocalImage) Hash() string {
 	if i.File != nil && i.File.HashValid() {
 		return i.File.Hash
 	} else {
@@ -35,12 +35,12 @@ func (i *Image) Hash() string {
 	}
 }
 
-func FromFiles(files file.MapFiles, titlePattern *regexp.Regexp) (Images, MapImages) {
+func FromFiles(files file.MapFiles, titlePattern *regexp.Regexp) (LocalImages, MapImages) {
 	m := make(MapImages)
-	imgs := make(Images, 0, len(files))
+	imgs := make(LocalImages, 0, len(files))
 	for _, f := range files {
 		submatch := utils.FindStringSubmatch(titlePattern, f.Name)
-		img := &Image{
+		img := &LocalImage{
 			Image: &models.Image{
 				Title:       submatch["title"],
 				Description: submatch["description"],

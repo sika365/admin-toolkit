@@ -17,11 +17,11 @@ import (
 )
 
 type Logic interface {
-	Find(ctx *context.Context, req *SyncByImageRequest, filters url.Values) (products Products, err error)
-	Create(ctx *context.Context, prods Products, batchSize int) error
-	SyncByImages(ctx *context.Context, req *SyncByImageRequest, filters url.Values) (Products, error)
+	Find(ctx *context.Context, req *SyncByImageRequest, filters url.Values) (products LocalProducts, err error)
+	Create(ctx *context.Context, prods LocalProducts, batchSize int) error
+	SyncByImages(ctx *context.Context, req *SyncByImageRequest, filters url.Values) (LocalProducts, error)
 	SyncBySpreadSheets(ctx *context.Context, req *SyncBySpreadSheetsRequest, filters url.Values) (*simscheme.Document, error)
-	SetImage(ctx *context.Context, req *SyncByImageRequest, prd *models.Product, imgs image.Images) (*Product, error)
+	SetImage(ctx *context.Context, req *SyncByImageRequest, prd *models.Product, imgs image.LocalImages) (*LocalProduct, error)
 	MatchBarcode(ctx *context.Context, req *SyncByImageRequest, barcode string, productNodes models.Nodes) (*models.Product, error)
 }
 
@@ -40,7 +40,7 @@ func newLogic(conn *simutils.DBConnection, client *client.Client, repo Repo) (Lo
 	return l, nil
 }
 
-func (l *logic) Find(ctx *context.Context, req *SyncByImageRequest, filters url.Values) (products Products, err error) {
+func (l *logic) Find(ctx *context.Context, req *SyncByImageRequest, filters url.Values) (products LocalProducts, err error) {
 	q := l.conn.DB.WithContext(ctx.Request().Context())
 
 	if products, err := l.repo.Read(ctx, q, filters); err != nil {
@@ -50,7 +50,7 @@ func (l *logic) Find(ctx *context.Context, req *SyncByImageRequest, filters url.
 	}
 }
 
-func (l *logic) Create(ctx *context.Context, prods Products, batchSize int) error {
+func (l *logic) Create(ctx *context.Context, prods LocalProducts, batchSize int) error {
 	pool := pond.New(batchSize, 0)
 
 	for _, prd := range prods {
@@ -80,7 +80,7 @@ func (l *logic) Create(ctx *context.Context, prods Products, batchSize int) erro
 				// Write uploaded files into the database
 			} else if tx := l.conn.DB.WithContext(ctx.Request().Context()); tx == nil {
 				return
-			} else if err := l.repo.Create(ctx, tx, Products{&Product{Product: resultProd}}); err != nil {
+			} else if err := l.repo.Create(ctx, tx, LocalProducts{&LocalProduct{Product: resultProd}}); err != nil {
 				logrus.Infof("writing file %v in db failed", prd)
 				return
 			}
@@ -92,12 +92,12 @@ func (l *logic) Create(ctx *context.Context, prods Products, batchSize int) erro
 	return nil
 }
 
-func (l *logic) SyncByImages(ctx *context.Context, req *SyncByImageRequest, filters url.Values) (products Products, err error) {
+func (l *logic) SyncByImages(ctx *context.Context, req *SyncByImageRequest, filters url.Values) (products LocalProducts, err error) {
 	var (
 		batchSize        = 5
 		filtersEncoded   = filters.Encode()
 		mimages          image.MapImages
-		mapBarcodeImages = make(map[string]image.Images)
+		mapBarcodeImages = make(map[string]image.LocalImages)
 		pool             = pond.New(batchSize, 0)
 	)
 
@@ -159,7 +159,7 @@ func (l *logic) SyncByImages(ctx *context.Context, req *SyncByImageRequest, filt
 			} else if err := l.repo.Create(
 				ctx,
 				l.conn.DB.WithContext(ctx.Request().Context()),
-				Products{prd},
+				LocalProducts{prd},
 			); err != nil {
 				return
 			} else {
@@ -174,7 +174,7 @@ func (l *logic) SyncByImages(ctx *context.Context, req *SyncByImageRequest, filt
 	return products, nil
 }
 
-func (l *logic) SetImage(_ *context.Context, req *SyncByImageRequest, prd *models.Product, imgs image.Images) (*Product, error) {
+func (l *logic) SetImage(_ *context.Context, req *SyncByImageRequest, prd *models.Product, imgs image.LocalImages) (*LocalProduct, error) {
 	product := FromProduct(prd)
 
 	if req.ReplaceGallery {
@@ -196,9 +196,9 @@ func (l *logic) SetImage(_ *context.Context, req *SyncByImageRequest, prd *model
 			prd.CoverID, _ = img.ID.ToNullPID()
 		} else if req.ReplaceGallery || !req.IgnoreAddToGallery {
 			product.Gallery = append(product.Gallery, &ProductImage{
-				ImageID:   img.ID,
-				Image:     img,
-				ProductID: product.ID,
+				LocalImageID:   img.ID,
+				LocalImage:     img,
+				LocalProductID: product.ID,
 			})
 			prd.Images = append(prd.Images, &models.Imagable{
 				ImageID: img.ID,

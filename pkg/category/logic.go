@@ -2,6 +2,7 @@ package category
 
 import (
 	"errors"
+	"fmt"
 	"net/url"
 
 	simutils "github.com/alifakhimi/simple-utils-go"
@@ -61,7 +62,7 @@ func (l *logic) Store(ctx *context.Context, req *SyncRequest, doc *simscheme.Doc
 				return err
 			}
 
-			rec.Category = &Category{
+			rec.LocalCategory = &LocalCategory{
 				Title:    rec.Title,
 				Alias:    rec.Title,
 				Slug:     rec.Title,
@@ -85,7 +86,7 @@ func (l *logic) Sync(ctx *context.Context, req *SyncRequest, filters url.Values)
 	)
 
 	if req.ScanRequest.CategoryHeaderMap.Title == "" {
-		return nil, nil
+		return nil, fmt.Errorf("key of title is not specified")
 	} else if csvFiles, err := excel.LoadExcels(ctx, req.Root, req.MaxDepth); err != nil {
 		return nil, err
 		// Make CategoryNodes from the files

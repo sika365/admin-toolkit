@@ -10,9 +10,9 @@ require (
 	github.com/alitto/pond v1.9.1
 	github.com/dustin/go-humanize v1.0.1
 	github.com/gabriel-vasile/mimetype v1.4.4
+	github.com/go-resty/resty/v2 v2.13.1
 	github.com/labstack/echo/v4 v4.12.0
 	github.com/mattn/go-sqlite3 v1.14.22
-	github.com/onsi/gomega v1.18.1
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cast v1.6.0
 	github.com/xuri/excelize/v2 v2.8.1
@@ -36,7 +36,6 @@ require (
 	github.com/go-openapi/spec v0.21.0 // indirect
 	github.com/go-openapi/swag v0.23.0 // indirect
 	github.com/go-redis/redis/v8 v8.11.5 // indirect
-	github.com/go-resty/resty/v2 v2.13.1 // indirect
 	github.com/go-sql-driver/mysql v1.8.1 // indirect
 	github.com/golang-jwt/jwt v3.2.2+incompatible // indirect
 	github.com/golang-sql/civil v0.0.0-20220223132316-b832511892a9 // indirect

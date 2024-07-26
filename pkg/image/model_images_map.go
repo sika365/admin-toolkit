@@ -1,8 +1,8 @@
 package image
 
-type MapImages map[string]*Image
+type MapImages map[string]*LocalImage
 
-func NewMapImages(files ...*Image) MapImages {
+func NewMapImages(files ...*LocalImage) MapImages {
 	fs := make(MapImages)
 	for _, f := range files {
 		fs.Add(f)
@@ -10,11 +10,11 @@ func NewMapImages(files ...*Image) MapImages {
 	return fs
 }
 
-func (fs MapImages) Get(key string) *Image {
+func (fs MapImages) Get(key string) *LocalImage {
 	return fs[key]
 }
 
-func (fs MapImages) Add(file *Image) MapImages {
+func (fs MapImages) Add(file *LocalImage) MapImages {
 	if h := file.Hash(); h == "" {
 		return fs
 	} else {
@@ -31,8 +31,8 @@ func (fs MapImages) GetKeys() []string {
 	return hashes
 }
 
-func (fs MapImages) GetValues() Images {
-	files := make(Images, 0, len(fs))
+func (fs MapImages) GetValues() LocalImages {
+	files := make(LocalImages, 0, len(fs))
 	for _, f := range fs {
 		files = append(files, f)
 	}

@@ -13,12 +13,12 @@ import (
 )
 
 type Repo interface {
-	Create(ctx *context.Context, db *gorm.DB, products Products) error
+	Create(ctx *context.Context, db *gorm.DB, products LocalProducts) error
 	CreateRecord(ctx *context.Context, db *gorm.DB, prodRecs ...*ProductRecord) error
 	Read(ctx *context.Context, db *gorm.DB, filters url.Values) (MapProducts, error)
 	ReadByBarcode(ctx *context.Context, db *gorm.DB, barcode string) (MapProducts, error)
 	ReadImagesWithoutProduct(ctx *context.Context, db *gorm.DB, filters url.Values) (mimages image.MapImages, err error)
-	Update(ctx *context.Context, db *gorm.DB, product *Product, filters url.Values) error
+	Update(ctx *context.Context, db *gorm.DB, product *LocalProduct, filters url.Values) error
 	Delete(ctx *context.Context, db *gorm.DB, id simutils.PID, filters url.Values) error
 }
 
@@ -31,7 +31,7 @@ func newRepo() (Repo, error) {
 }
 
 // Create implements Repo.
-func (i *repo) Create(ctx *context.Context, db *gorm.DB, products Products) error {
+func (i *repo) Create(ctx *context.Context, db *gorm.DB, products LocalProducts) error {
 	if len(products) == 0 {
 		return nil
 	} else if err := db.CreateInBatches(products, 100).Error; err != nil {
@@ -52,7 +52,7 @@ func (i *repo) CreateRecord(ctx *context.Context, db *gorm.DB, prodRecs ...*Prod
 
 // Read reads products with filters
 func (i *repo) Read(ctx *context.Context, db *gorm.DB, filters url.Values) (products MapProducts, err error) {
-	var stored Products
+	var stored LocalProducts
 	if err = utils.
 		BuildGormQuery(ctx, db, filters).
 		Find(&stored).Error; err != nil {
@@ -64,7 +64,7 @@ func (i *repo) Read(ctx *context.Context, db *gorm.DB, filters url.Values) (prod
 
 // ReadByBarcode reads products bye barcode
 func (i *repo) ReadByBarcode(ctx *context.Context, db *gorm.DB, barcode string) (MapProducts, error) {
-	var stored Products
+	var stored LocalProducts
 	if err := db.
 		// Where("all_barcodes like ?", "'%"+barcode+";%'").
 		Find(&stored).Error; err != nil {
@@ -75,7 +75,7 @@ func (i *repo) ReadByBarcode(ctx *context.Context, db *gorm.DB, barcode string) 
 }
 
 func (i *repo) ReadImagesWithoutProduct(ctx *context.Context, db *gorm.DB, filters url.Values) (mimages image.MapImages, err error) {
-	var images image.Images
+	var images image.LocalImages
 	if err = utils.
 		BuildGormQuery(ctx, db, filters).
 		InnerJoins("File").
@@ -87,7 +87,7 @@ func (i *repo) ReadImagesWithoutProduct(ctx *context.Context, db *gorm.DB, filte
 	} else if barcodeRegex, err := regexp.Compile(image.ImageBarcodeRegex); err != nil {
 		return nil, err
 	} else {
-		var barcodeImages image.Images
+		var barcodeImages image.LocalImages
 		for _, img := range images {
 			if barcodeRegex.MatchString(img.Image.Title) {
 				barcodeImages = append(barcodeImages, img)
@@ -98,7 +98,7 @@ func (i *repo) ReadImagesWithoutProduct(ctx *context.Context, db *gorm.DB, filte
 }
 
 // Update implements Repo.
-func (i *repo) Update(ctx *context.Context, db *gorm.DB, product *Product, filters url.Values) error {
+func (i *repo) Update(ctx *context.Context, db *gorm.DB, product *LocalProduct, filters url.Values) error {
 	panic("unimplemented")
 }
 

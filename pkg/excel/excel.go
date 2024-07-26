@@ -2,7 +2,9 @@ package excel
 
 import (
 	"encoding/csv"
+	"errors"
 	"fmt"
+	"io"
 	"os"
 	"path"
 	"regexp"
@@ -109,12 +111,16 @@ func FromFiles(files file.MapFiles, offset int, fn func(header map[string]int, r
 		// Read the remaining records from the CSV file
 		i := offset + 1 // 1 row header
 		for {
-			if r, err := reader.Read(); err != nil {
+			if r, err := reader.Read(); err != nil && !errors.Is(err, io.EOF) {
 				return fmt.Errorf("failed to read row %d: %w", i+1, err)
+			} else if errors.Is(err, io.EOF) {
+				break
 			} else {
 				fn(header, r)
 			}
 		}
+
+		f.Close()
 	}
 	return nil
 }

@@ -7,6 +7,7 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/sika365/admin-tools/config"
+	"github.com/sika365/admin-tools/pkg/category"
 	"github.com/sika365/admin-tools/pkg/client"
 	"github.com/sika365/admin-tools/pkg/file"
 	"github.com/sika365/admin-tools/pkg/image"
@@ -54,6 +55,7 @@ func (svc *Service) Init() error {
 		Add(file.New(h, db, client)).
 		Add(image.New(h, db, client)).
 		Add(product.New(h, db, client)).
+		Add(category.New(h, db, client)).
 		Add(node.New(h, db, client)).
 		// Add more package
 		Init(); err != nil {

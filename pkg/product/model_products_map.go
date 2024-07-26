@@ -1,8 +1,8 @@
 package product
 
-type MapProducts map[string]*Product
+type MapProducts map[string]*LocalProduct
 
-func NewMapProducts(products ...*Product) MapProducts {
+func NewMapProducts(products ...*LocalProduct) MapProducts {
 	ps := make(MapProducts)
 	for _, p := range products {
 		ps.Add(p)
@@ -10,11 +10,11 @@ func NewMapProducts(products ...*Product) MapProducts {
 	return ps
 }
 
-func (mps MapProducts) Get(key string) *Product {
+func (mps MapProducts) Get(key string) *LocalProduct {
 	return mps[key]
 }
 
-func (mps MapProducts) Add(prd *Product) MapProducts {
+func (mps MapProducts) Add(prd *LocalProduct) MapProducts {
 	if h := prd.Key(); h == "" {
 		return mps
 	} else {
@@ -31,8 +31,8 @@ func (mps MapProducts) GetKeys() []string {
 	return keys
 }
 
-func (mps MapProducts) GetValues() Products {
-	prds := make(Products, 0, len(mps))
+func (mps MapProducts) GetValues() LocalProducts {
+	prds := make(LocalProducts, 0, len(mps))
 	for _, p := range mps {
 		prds = append(prds, p)
 	}

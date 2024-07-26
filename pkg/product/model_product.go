@@ -7,33 +7,34 @@ import (
 	"github.com/sika365/admin-tools/pkg/image"
 )
 
-type Products []*Product
+type LocalProducts []*LocalProduct
 
 type ProductImages = []*ProductImage
 
 type ProductImage struct {
 	database.Model
-	ImageID   database.PID `json:"image_id,omitempty"`
-	Image     *image.Image `json:"image,omitempty"`
-	ProductID database.PID `json:"owner_id,omitempty"`
+	LocalImageID   database.PID      `json:"local_image_id,omitempty"`
+	LocalImage     *image.LocalImage `json:"local_image,omitempty"`
+	LocalProductID database.PID      `json:"local_product_id,omitempty"`
 }
 
 type Gallery = ProductImages
 
-type Product struct {
+type LocalProduct struct {
 	models.CommonTableFields
-	CoverID database.NullPID `json:"cover_id,omitempty"`
-	Cover   *image.Image     `json:"cover,omitempty"`
-	Gallery Gallery          `json:"gallery"`
-	Product *models.Product  `json:"product,omitempty"`
+	CoverID   database.NullPID  `json:"cover_id,omitempty"`
+	ProductID database.PID      `json:"product_id,omitempty"`
+	Cover     *image.LocalImage `json:"cover,omitempty"`
+	Gallery   Gallery           `json:"gallery"`
+	Product   *models.Product   `json:"product,omitempty"`
 }
 
-func FromProduct(prd *models.Product) *Product {
-	p := &Product{Product: prd}
+func FromProduct(prd *models.Product) *LocalProduct {
+	p := &LocalProduct{Product: prd}
 	return p
 }
 
-func ToProduct(prd *Product) *models.Product {
+func ToProduct(prd *LocalProduct) *models.Product {
 	product := prd.Product
 	product.CoverID = prd.CoverID
 	product.Images = make(models.Imagables, 0, len(prd.Gallery))
@@ -56,14 +57,14 @@ func ToProduct(prd *Product) *models.Product {
 	return product
 }
 
-func (Product) TableName() string {
+func (LocalProduct) TableName() string {
 	return "products"
 }
 
-func (p *Product) Key() string {
+func (p *LocalProduct) Key() string {
 	return p.ID.String()
 }
 
-func (p *Product) ToProduct() *models.Product {
+func (p *LocalProduct) ToProduct() *models.Product {
 	return ToProduct(p)
 }

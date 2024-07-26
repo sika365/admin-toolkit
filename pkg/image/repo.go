@@ -11,10 +11,10 @@ import (
 )
 
 type Repo interface {
-	Create(ctx *context.Context, db *gorm.DB, images Images) error
+	Create(ctx *context.Context, db *gorm.DB, images LocalImages) error
 	Read(ctx *context.Context, db *gorm.DB, filters url.Values) (MapImages, error)
 	ReadFiles(ctx *context.Context, db *gorm.DB, files MapImages, filters url.Values) (MapImages, error)
-	Update(ctx *context.Context, db *gorm.DB, file *Image, filters url.Values) error
+	Update(ctx *context.Context, db *gorm.DB, file *LocalImage, filters url.Values) error
 	Delete(ctx *context.Context, db *gorm.DB, id database.PID, filters url.Values) error
 }
 
@@ -28,7 +28,7 @@ func newRepo() (Repo, error) {
 
 // Read reads files with filters
 func (i *repo) Read(ctx *context.Context, db *gorm.DB, filters url.Values) (images MapImages, err error) {
-	var stored Images
+	var stored LocalImages
 	if err = utils.
 		BuildGormQuery(ctx, db, filters).
 		InnerJoins("Image").
@@ -41,7 +41,7 @@ func (i *repo) Read(ctx *context.Context, db *gorm.DB, filters url.Values) (imag
 }
 
 func (i *repo) ReadFiles(ctx *context.Context, db *gorm.DB, files MapImages, filters url.Values) (images MapImages, err error) {
-	var imgs Images
+	var imgs LocalImages
 	if err = utils.
 		BuildGormQuery(ctx, db, filters).
 		InnerJoins("Image").
@@ -57,7 +57,7 @@ func (i *repo) ReadFiles(ctx *context.Context, db *gorm.DB, files MapImages, fil
 }
 
 // Create implements Repo.
-func (i *repo) Create(ctx *context.Context, db *gorm.DB, files Images) error {
+func (i *repo) Create(ctx *context.Context, db *gorm.DB, files LocalImages) error {
 	if len(files) == 0 {
 		return nil
 	} else if err := db.CreateInBatches(files, 100).Error; err != nil {
@@ -68,7 +68,7 @@ func (i *repo) Create(ctx *context.Context, db *gorm.DB, files Images) error {
 }
 
 // Update implements Repo.
-func (i *repo) Update(ctx *context.Context, db *gorm.DB, file *Image, filters url.Values) error {
+func (i *repo) Update(ctx *context.Context, db *gorm.DB, file *LocalImage, filters url.Values) error {
 	panic("unimplemented")
 }
 

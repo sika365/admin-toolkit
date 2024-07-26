@@ -14,8 +14,8 @@ import (
 )
 
 type Logic interface {
-	Find(ctx *context.Context, filters url.Values) (files Images, err error)
-	Save(ctx *context.Context, files Images, replace bool, batchSize int) error
+	Find(ctx *context.Context, filters url.Values) (files LocalImages, err error)
+	Save(ctx *context.Context, files LocalImages, replace bool, batchSize int) error
 	ReadFiles(ctx *context.Context, root string, maxDepth int, reContentType *regexp.Regexp, reBarcode *regexp.Regexp, filters url.Values) (files MapImages, err error)
 	ReadBarcodeImageFiles(ctx *context.Context, root string, maxDepth int, reContentType *regexp.Regexp, filters url.Values) (files MapImages, err error)
 	Sync(ctx *context.Context, root string, maxDepth int, replace bool, filters url.Values) (images MapImages, err error)
@@ -36,7 +36,7 @@ func newLogic(conn *simutils.DBConnection, client *client.Client, repo Repo) (Lo
 	return l, nil
 }
 
-func (l *logic) Find(ctx *context.Context, filters url.Values) (files Images, err error) {
+func (l *logic) Find(ctx *context.Context, filters url.Values) (files LocalImages, err error) {
 	filters["content_types"] = []string{ImageContentTypeRegex}
 	q := l.conn.DB.WithContext(ctx.Request().Context())
 
@@ -47,7 +47,7 @@ func (l *logic) Find(ctx *context.Context, filters url.Values) (files Images, er
 	}
 }
 
-func (l *logic) Save(ctx *context.Context, images Images, replace bool, batchSize int) error {
+func (l *logic) Save(ctx *context.Context, images LocalImages, replace bool, batchSize int) error {
 	pool := pond.New(batchSize, 0)
 
 	for _, img := range images {
@@ -68,7 +68,7 @@ func (l *logic) Save(ctx *context.Context, images Images, replace bool, batchSiz
 				return
 			} else if tx := l.conn.DB.WithContext(ctx.Request().Context()); tx == nil {
 				return
-			} else if err := l.repo.Create(ctx, tx, Images{img}); err != nil {
+			} else if err := l.repo.Create(ctx, tx, LocalImages{img}); err != nil {
 				logrus.Infof("writing file %v in db failed", img)
 				return
 			}

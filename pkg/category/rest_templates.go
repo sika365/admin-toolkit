@@ -20,7 +20,7 @@ type ScanRequest struct {
 }
 type ScanResponse struct {
 	templates.ResponseTemplate
-	Data Categories `json:"data,omitempty"`
+	Data LocalCategories `json:"data,omitempty"`
 }
 
 type ConvertRequest struct {
