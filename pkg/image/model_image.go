@@ -16,22 +16,22 @@ func (imgs Images) Add(img *Image) Images {
 }
 
 type Image struct {
-	*models.Image
-	FileID database.PID `json:"file_id,omitempty" gorm:"default:null"`
-	File   *file.File   `json:"file,omitempty"`
+	models.CommonTableFields
+	ImageID database.PID  `json:"image_id,omitempty"`
+	Image   *models.Image `json:"image,omitempty"`
+	FileID  database.PID  `json:"file_id,omitempty" gorm:"default:null"`
+	File    *file.File    `json:"file,omitempty"`
 }
 
-// func (i *Image) AfterFind(tx *gorm.DB) (err error) {
-// 	return nil
-// }
-
-// func (i *Image) MakeUpload
+func (Image) TableName() string {
+	return "local_images"
+}
 
 func (i *Image) Hash() string {
 	if i.File != nil && i.File.HashValid() {
 		return i.File.Hash
 	} else {
-		return i.Name
+		return i.Image.Alias
 	}
 }
 

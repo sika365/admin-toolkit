@@ -21,10 +21,11 @@ type ProductImage struct {
 type Gallery = ProductImages
 
 type Product struct {
-	*models.Product
+	models.CommonTableFields
 	CoverID database.NullPID `json:"cover_id,omitempty"`
 	Cover   *image.Image     `json:"cover,omitempty"`
 	Gallery Gallery          `json:"gallery"`
+	Product *models.Product  `json:"product,omitempty"`
 }
 
 func FromProduct(prd *models.Product) *Product {

@@ -122,7 +122,7 @@ func (l *logic) Load(ctx *context.Context, files MapFiles, batchSize int) (unsav
 func (l *logic) ReadFiles(ctx *context.Context, root string, maxDepth int, reContentType *regexp.Regexp, filters url.Values) (files MapFiles, err error) {
 	if logrus.Infof("walk directory %s", root); false {
 		return nil, nil
-		// Filter images
+		// Filter files
 	} else if filteredFiles, _ := WalkDir(root, maxDepth, reContentType, nil); len(filteredFiles) == 0 {
 		logrus.Info("!!! no files found !!!")
 		return nil, nil

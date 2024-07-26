@@ -1,13 +1,16 @@
-package product
+package category
 
 import (
 	simutils "github.com/alifakhimi/simple-utils-go"
+
 	"github.com/sika365/admin-tools/pkg/client"
 	"github.com/sika365/admin-tools/registrar"
 )
 
 const (
-	PackageName = "product"
+	PackageName = "category"
+	ExcelRegex  = `^.*\.xlsx?$`
+	CSVRegex    = `^.*\.csv?$`
 )
 
 type Package struct {

@@ -4,24 +4,31 @@ go 1.22.3
 
 require (
 	github.com/alifakhimi/simple-service-go v0.0.0-20240719125813-1974a13ecc21
-	github.com/alifakhimi/simple-utils-go v0.0.4
-	github.com/alifakhimi/simple-utils-go/simrest v0.0.0-20240719124859-4ae86506f79e
+	github.com/alifakhimi/simple-utils-go v0.0.6
+	github.com/alifakhimi/simple-utils-go/simrest v0.0.0-20240723093118-3c78d436c37f
+	github.com/alifakhimi/simple-utils-go/simscheme v0.0.0-20240723093118-3c78d436c37f
+	github.com/alitto/pond v1.9.1
+	github.com/dustin/go-humanize v1.0.1
 	github.com/gabriel-vasile/mimetype v1.4.4
 	github.com/labstack/echo/v4 v4.12.0
+	github.com/mattn/go-sqlite3 v1.14.22
+	github.com/onsi/gomega v1.18.1
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cast v1.6.0
+	github.com/xuri/excelize/v2 v2.8.1
 	gitlab.sikapp.ir/sikatech/eshop/eshop-sdk-go-v1 v1.11.187
+	golang.org/x/exp v0.0.0-20240719175910-8a7402abbf56
+	gorm.io/driver/sqlite v1.5.6
+	gorm.io/gorm v1.25.11
 )
 
 require (
 	filippo.io/edwards25519 v1.1.0 // indirect
 	github.com/KyleBanks/depth v1.2.1 // indirect
-	github.com/alitto/pond v1.9.1 // indirect
 	github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/common-nighthawk/go-figure v0.0.0-20210622060536-734e95fb86be // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
-	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
 	github.com/ghodss/yaml v1.0.0 // indirect
 	github.com/go-openapi/jsonpointer v0.21.0 // indirect
@@ -49,13 +56,14 @@ require (
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
-	github.com/mattn/go-sqlite3 v1.14.22 // indirect
 	github.com/mavihq/persian v0.0.0-20210617052201-7c4f3764aa6b // indirect
 	github.com/microsoft/go-mssqldb v1.7.2 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/mohae/deepcopy v0.0.0-20170929034955-c48cc78d4826 // indirect
 	github.com/paulmach/orb v0.10.0 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.2 // indirect
+	github.com/richardlehane/mscfb v1.0.4 // indirect
+	github.com/richardlehane/msoleps v1.0.3 // indirect
 	github.com/sagikazarmark/locafero v0.6.0 // indirect
 	github.com/sagikazarmark/slog-shim v0.1.0 // indirect
 	github.com/sourcegraph/conc v0.3.0 // indirect
@@ -68,10 +76,11 @@ require (
 	github.com/swaggo/swag v1.16.3 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasttemplate v1.2.2 // indirect
+	github.com/xuri/efp v0.0.0-20231025114914-d1ff6096ae53 // indirect
+	github.com/xuri/nfp v0.0.0-20230919160717-d98342af3f05 // indirect
 	github.com/yaa110/go-persian-calendar v1.1.5 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/crypto v0.25.0 // indirect
-	golang.org/x/exp v0.0.0-20240716175740-e3f259677ff7 // indirect
 	golang.org/x/net v0.27.0 // indirect
 	golang.org/x/sync v0.7.0 // indirect
 	golang.org/x/sys v0.22.0 // indirect
@@ -83,8 +92,6 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	gorm.io/driver/mysql v1.5.7 // indirect
 	gorm.io/driver/postgres v1.5.9 // indirect
-	gorm.io/driver/sqlite v1.5.6 // indirect
 	gorm.io/driver/sqlserver v1.5.3 // indirect
-	gorm.io/gorm v1.25.11 // indirect
 	gorm.io/plugin/dbresolver v1.5.2 // indirect
 )

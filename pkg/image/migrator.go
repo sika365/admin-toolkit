@@ -5,7 +5,7 @@ import (
 	"github.com/sika365/admin-tools/registrar"
 )
 
-func (i *pkg) Migrator() error {
+func (i *Package) Migrator() error {
 	if fp, err := registrar.Get(file.PackageName); err != nil {
 		return err
 	} else if err := fp.Migrator(); err != nil {

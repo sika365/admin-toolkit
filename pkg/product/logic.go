@@ -4,35 +4,43 @@ import (
 	"net/url"
 
 	simutils "github.com/alifakhimi/simple-utils-go"
+	"github.com/alifakhimi/simple-utils-go/simscheme"
 	"github.com/alitto/pond"
 	"github.com/sirupsen/logrus"
 	"gitlab.sikapp.ir/sikatech/eshop/eshop-sdk-go-v1/models"
 
 	"github.com/sika365/admin-tools/config"
 	"github.com/sika365/admin-tools/context"
+	"github.com/sika365/admin-tools/pkg/client"
+	"github.com/sika365/admin-tools/pkg/excel"
 	"github.com/sika365/admin-tools/pkg/image"
 )
 
 type Logic interface {
-	Find(ctx *context.Context, req *SyncRequest, filters url.Values) (Products, error)
+	Find(ctx *context.Context, req *SyncByImageRequest, filters url.Values) (products Products, err error)
 	Create(ctx *context.Context, prods Products, batchSize int) error
-	Sync(ctx *context.Context, req *SyncRequest, filters url.Values) (Products, error)
+	SyncByImages(ctx *context.Context, req *SyncByImageRequest, filters url.Values) (Products, error)
+	SyncBySpreadSheets(ctx *context.Context, req *SyncBySpreadSheetsRequest, filters url.Values) (*simscheme.Document, error)
+	SetImage(ctx *context.Context, req *SyncByImageRequest, prd *models.Product, imgs image.Images) (*Product, error)
+	MatchBarcode(ctx *context.Context, req *SyncByImageRequest, barcode string, productNodes models.Nodes) (*models.Product, error)
 }
 
 type logic struct {
-	conn *simutils.DBConnection
-	repo Repo
+	conn   *simutils.DBConnection
+	client *client.Client
+	repo   Repo
 }
 
-func newLogic(repo Repo, conn *simutils.DBConnection) (Logic, error) {
+func newLogic(conn *simutils.DBConnection, client *client.Client, repo Repo) (Logic, error) {
 	l := &logic{
-		conn: conn,
-		repo: repo,
+		conn:   conn,
+		client: client,
+		repo:   repo,
 	}
 	return l, nil
 }
 
-func (l *logic) Find(ctx *context.Context, req *SyncRequest, filters url.Values) (products Products, err error) {
+func (l *logic) Find(ctx *context.Context, req *SyncByImageRequest, filters url.Values) (products Products, err error) {
 	q := l.conn.DB.WithContext(ctx.Request().Context())
 
 	if products, err := l.repo.Read(ctx, q, filters); err != nil {
@@ -84,7 +92,7 @@ func (l *logic) Create(ctx *context.Context, prods Products, batchSize int) erro
 	return nil
 }
 
-func (l *logic) Sync(ctx *context.Context, req *SyncRequest, filters url.Values) (products Products, err error) {
+func (l *logic) SyncByImages(ctx *context.Context, req *SyncByImageRequest, filters url.Values) (products Products, err error) {
 	var (
 		batchSize        = 5
 		filtersEncoded   = filters.Encode()
@@ -104,7 +112,7 @@ func (l *logic) Sync(ctx *context.Context, req *SyncRequest, filters url.Values)
 
 	for _, img := range mimages {
 		// TODO check barcode pattern
-		mapBarcodeImages[img.Title] = append(mapBarcodeImages[img.Title], img)
+		mapBarcodeImages[img.Image.Title] = append(mapBarcodeImages[img.Image.Title], img)
 	}
 
 	for barcode, imgs := range mapBarcodeImages {
@@ -133,9 +141,9 @@ func (l *logic) Sync(ctx *context.Context, req *SyncRequest, filters url.Values)
 				return
 			} else if !resp.IsSuccess() {
 				return
-			} else if prd, err := l.matchBarcode(ctx, req, code, productsResp.Data.ProductNodes); err != nil {
+			} else if prd, err := l.MatchBarcode(ctx, req, code, productsResp.Data.ProductNodes); err != nil {
 				return
-			} else if prd, err := l.setImage(ctx, req, prd, imgs); err != nil {
+			} else if prd, err := l.SetImage(ctx, req, prd, imgs); err != nil {
 				return
 			} else if resp, err := client.R().
 				SetPathParams(map[string]string{
@@ -166,7 +174,7 @@ func (l *logic) Sync(ctx *context.Context, req *SyncRequest, filters url.Values)
 	return products, nil
 }
 
-func (l *logic) setImage(_ *context.Context, req *SyncRequest, prd *models.Product, imgs image.Images) (*Product, error) {
+func (l *logic) SetImage(_ *context.Context, req *SyncByImageRequest, prd *models.Product, imgs image.Images) (*Product, error) {
 	product := FromProduct(prd)
 
 	if req.ReplaceGallery {
@@ -202,7 +210,7 @@ func (l *logic) setImage(_ *context.Context, req *SyncRequest, prd *models.Produ
 	return product, nil
 }
 
-func (l *logic) matchBarcode(_ *context.Context, _ *SyncRequest, barcode string, productNodes models.Nodes) (*models.Product, error) {
+func (l *logic) MatchBarcode(_ *context.Context, _ *SyncByImageRequest, barcode string, productNodes models.Nodes) (*models.Product, error) {
 	for _, node := range productNodes {
 		if node.Product == nil || node.Product.LocalProduct == nil {
 			continue
@@ -215,4 +223,44 @@ func (l *logic) matchBarcode(_ *context.Context, _ *SyncRequest, barcode string,
 	}
 
 	return nil, simutils.ErrNotFound
+}
+
+func (l *logic) SyncBySpreadSheets(ctx *context.Context, req *SyncBySpreadSheetsRequest, filters url.Values) (*simscheme.Document, error) {
+	var (
+		prodRecDoc = simscheme.
+				GetSchema().
+				AddNewDocumentWithType(&ProductRecord{})
+
+		productRecords []*ProductRecord
+	)
+
+	if req.ProductHeaderMap.Barcode == "" {
+		return nil, nil
+	} else if csvFiles, err := excel.LoadExcels(ctx, req.Root, req.MaxDepth); err != nil {
+		return nil, err
+		// Make ProductNodes from the files
+	} else if err := excel.FromFiles(
+		csvFiles,
+		req.Offset,
+		func(header map[string]int, rec []string) {
+			prodRec := &ProductRecord{
+				Barcode:        rec[header[req.ProductHeaderMap.Barcode]],
+				Title:          rec[header[req.ProductHeaderMap.Title]],
+				Category:       rec[header[req.ProductHeaderMap.Category]],
+				CategoryRecord: nil,
+			}
+			prodRecDoc.AddNode(prodRec)
+		},
+	); err != nil {
+		return prodRecDoc, err
+	} else if err := prodRecDoc.GetData(prodRecDoc.GetData(productRecords)); err != nil {
+		return prodRecDoc, err
+	} else if err := l.repo.CreateRecord(ctx,
+		l.conn.DB.WithContext(ctx.Request().Context()),
+		productRecords...,
+	); err != nil {
+		return nil, err
+	} else {
+		return prodRecDoc, nil
+	}
 }

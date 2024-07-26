@@ -31,6 +31,7 @@ func (i *repo) Read(ctx *context.Context, db *gorm.DB, filters url.Values) (imag
 	var stored Images
 	if err = utils.
 		BuildGormQuery(ctx, db, filters).
+		InnerJoins("Image").
 		InnerJoins("File").
 		Find(&stored).Error; err != nil {
 		return nil, err
@@ -43,6 +44,7 @@ func (i *repo) ReadFiles(ctx *context.Context, db *gorm.DB, files MapImages, fil
 	var imgs Images
 	if err = utils.
 		BuildGormQuery(ctx, db, filters).
+		InnerJoins("Image").
 		InnerJoins("File", db.Where("hash in (?)", files.GetKeys())).
 		Find(&imgs).Error; err != nil {
 		return nil, err

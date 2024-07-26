@@ -4,9 +4,9 @@ import (
 	"net/url"
 	"regexp"
 
-	"gitlab.sikapp.ir/sikatech/eshop/eshop-sdk-go-v1/database"
 	"gorm.io/gorm"
 
+	simutils "github.com/alifakhimi/simple-utils-go"
 	"github.com/sika365/admin-tools/context"
 	"github.com/sika365/admin-tools/pkg/image"
 	"github.com/sika365/admin-tools/utils"
@@ -14,10 +14,12 @@ import (
 
 type Repo interface {
 	Create(ctx *context.Context, db *gorm.DB, products Products) error
+	CreateRecord(ctx *context.Context, db *gorm.DB, prodRecs ...*ProductRecord) error
 	Read(ctx *context.Context, db *gorm.DB, filters url.Values) (MapProducts, error)
+	ReadByBarcode(ctx *context.Context, db *gorm.DB, barcode string) (MapProducts, error)
 	ReadImagesWithoutProduct(ctx *context.Context, db *gorm.DB, filters url.Values) (mimages image.MapImages, err error)
 	Update(ctx *context.Context, db *gorm.DB, product *Product, filters url.Values) error
-	Delete(ctx *context.Context, db *gorm.DB, id database.PID, filters url.Values) error
+	Delete(ctx *context.Context, db *gorm.DB, id simutils.PID, filters url.Values) error
 }
 
 type repo struct {
@@ -39,11 +41,32 @@ func (i *repo) Create(ctx *context.Context, db *gorm.DB, products Products) erro
 	}
 }
 
+// Create stores product records
+func (i *repo) CreateRecord(ctx *context.Context, db *gorm.DB, prodRecs ...*ProductRecord) error {
+	if err := db.CreateInBatches(prodRecs, 100).Error; err != nil {
+		return err
+	} else {
+		return nil
+	}
+}
+
 // Read reads products with filters
 func (i *repo) Read(ctx *context.Context, db *gorm.DB, filters url.Values) (products MapProducts, err error) {
 	var stored Products
 	if err = utils.
 		BuildGormQuery(ctx, db, filters).
+		Find(&stored).Error; err != nil {
+		return nil, err
+	} else {
+		return NewMapProducts(stored...), nil
+	}
+}
+
+// ReadByBarcode reads products bye barcode
+func (i *repo) ReadByBarcode(ctx *context.Context, db *gorm.DB, barcode string) (MapProducts, error) {
+	var stored Products
+	if err := db.
+		// Where("all_barcodes like ?", "'%"+barcode+";%'").
 		Find(&stored).Error; err != nil {
 		return nil, err
 	} else {
@@ -66,7 +89,7 @@ func (i *repo) ReadImagesWithoutProduct(ctx *context.Context, db *gorm.DB, filte
 	} else {
 		var barcodeImages image.Images
 		for _, img := range images {
-			if barcodeRegex.MatchString(img.Title) {
+			if barcodeRegex.MatchString(img.Image.Title) {
 				barcodeImages = append(barcodeImages, img)
 			}
 		}
@@ -80,6 +103,6 @@ func (i *repo) Update(ctx *context.Context, db *gorm.DB, product *Product, filte
 }
 
 // Delete implements Repo.
-func (i *repo) Delete(ctx *context.Context, db *gorm.DB, id database.PID, filters url.Values) error {
+func (i *repo) Delete(ctx *context.Context, db *gorm.DB, id simutils.PID, filters url.Values) error {
 	panic("unimplemented")
 }

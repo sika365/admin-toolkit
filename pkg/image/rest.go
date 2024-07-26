@@ -21,7 +21,7 @@ type rest struct {
 	logic Logic
 }
 
-func newRest(logic Logic, h *simutils.HttpServer) (Rest, error) {
+func newRest(h *simutils.HttpServer, logic Logic) (Rest, error) {
 	r := &rest{
 		logic: logic,
 	}

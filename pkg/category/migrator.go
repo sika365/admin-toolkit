@@ -1,8 +1,8 @@
-package product
+package category
 
 func (i *Package) Migrator() error {
 	return i.db.DB.AutoMigrate(
-		&ProductImage{},
-		&Product{},
+		&Category{},
+		&CategoryRecord{},
 	)
 }

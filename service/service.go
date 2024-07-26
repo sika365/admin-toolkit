@@ -4,13 +4,13 @@ import (
 	"errors"
 
 	"github.com/alifakhimi/simple-service-go"
-	"github.com/labstack/echo/v4"
 	"github.com/sirupsen/logrus"
 
 	"github.com/sika365/admin-tools/config"
-	"github.com/sika365/admin-tools/context"
+	"github.com/sika365/admin-tools/pkg/client"
 	"github.com/sika365/admin-tools/pkg/file"
 	"github.com/sika365/admin-tools/pkg/image"
+	"github.com/sika365/admin-tools/pkg/node"
 	"github.com/sika365/admin-tools/pkg/product"
 	"github.com/sika365/admin-tools/registrar"
 )
@@ -41,7 +41,8 @@ func (svc *Service) Init() error {
 	logrus.Infoln("Initializing service")
 	if conf := config.Config(); conf == nil {
 		return errors.New("no config instance found")
-		// Migration
+	} else if client, err := client.New(conf); err != nil {
+		return err
 	} else if db, err := conf.GetDB("db"); err != nil {
 		return err
 	} else if h, err := conf.GetHttpServer("main"); err != nil {
@@ -50,9 +51,10 @@ func (svc *Service) Init() error {
 		return err
 		// Initializing packages
 	} else if err := registrar.
-		Add(file.New(h, db)).
-		Add(image.New(h, db)).
-		Add(product.New(h, db)).
+		Add(file.New(h, db, client)).
+		Add(image.New(h, db, client)).
+		Add(product.New(h, db, client)).
+		Add(node.New(h, db, client)).
 		// Add more package
 		Init(); err != nil {
 		return err
@@ -62,14 +64,4 @@ func (svc *Service) Init() error {
 	}
 	// Viwes
 	// views.Init("./views")
-}
-
-func (svc *Service) UseContext(e *echo.Echo) error {
-	e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
-			cc := &context.Context{Context: c}
-			return next(cc)
-		}
-	})
-	return nil
 }

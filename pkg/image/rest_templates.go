@@ -1,11 +1,13 @@
 package image
 
-import simutils "github.com/alifakhimi/simple-utils-go"
+import (
+	simutils "github.com/alifakhimi/simple-utils-go"
+
+	"github.com/sika365/admin-tools/pkg/file"
+)
 
 type ScanRequest struct {
-	Root         string `json:"root,omitempty" query:"root"`
-	MaxDepth     int    `json:"max_depth,omitempty" query:"max_depth"`
-	ContentTypes string `json:"content_types,omitempty" query:"content_types"`
+	file.ScanRequest
 }
 
 type ScanResponse struct {

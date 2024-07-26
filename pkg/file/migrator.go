@@ -1,5 +1,5 @@
 package file
 
-func (i *pkg) Migrator() error {
+func (i *Package) Migrator() error {
 	return i.db.DB.AutoMigrate(&File{})
 }

@@ -7,10 +7,9 @@ import (
 	simutils "github.com/alifakhimi/simple-utils-go"
 	"github.com/alitto/pond"
 	"github.com/sirupsen/logrus"
-	"gitlab.sikapp.ir/sikatech/eshop/eshop-sdk-go-v1/models"
 
-	"github.com/sika365/admin-tools/config"
 	"github.com/sika365/admin-tools/context"
+	"github.com/sika365/admin-tools/pkg/client"
 	"github.com/sika365/admin-tools/pkg/file"
 )
 
@@ -23,14 +22,16 @@ type Logic interface {
 }
 
 type logic struct {
-	conn *simutils.DBConnection
-	repo Repo
+	conn   *simutils.DBConnection
+	client *client.Client
+	repo   Repo
 }
 
-func newLogic(repo Repo, conn *simutils.DBConnection) (Logic, error) {
+func newLogic(conn *simutils.DBConnection, client *client.Client, repo Repo) (Logic, error) {
 	l := &logic{
-		conn: conn,
-		repo: repo,
+		conn:   conn,
+		client: client,
+		repo:   repo,
 	}
 	return l, nil
 }
@@ -55,33 +56,16 @@ func (l *logic) Save(ctx *context.Context, images Images, replace bool, batchSiz
 		}
 
 		pool.Submit(func() {
-			var (
-				conf      = config.Config()
-				imageResp = models.ImagesResponse{}
-			)
-
 			logrus.Infof("Running task for %v", img)
+			defer logrus.Infof("Finished task for %v", img)
 			// Upload files
-			if client, err := conf.GetRestyClient("sika365"); err != nil {
+			if image, err := l.client.StoreImage(ctx,
+				img.File.Path,
+				img.Image,
+			); err != nil {
 				return
-			} else if resp, err := client.R().
-				SetFile("files", img.File.Path).
-				SetFormData(map[string]string{
-					"title":       img.Title,
-					"description": img.Description,
-				}).
-				SetResult(&imageResp).
-				SetError(&imageResp).
-				Post("/images"); err != nil {
-				logrus.Info(err)
+			} else if img.Image = image; image == nil {
 				return
-			} else if !resp.IsSuccess() {
-				return
-			} else if imgs := imageResp.Data.Images; len(imgs) == 0 || imgs[0] == nil {
-				return
-			} else if img.Image = imgs[0]; false {
-				return
-				// Write uploaded files into the database
 			} else if tx := l.conn.DB.WithContext(ctx.Request().Context()); tx == nil {
 				return
 			} else if err := l.repo.Create(ctx, tx, Images{img}); err != nil {

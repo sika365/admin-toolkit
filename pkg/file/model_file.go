@@ -13,6 +13,7 @@ import (
 
 	"github.com/dustin/go-humanize"
 	"github.com/gabriel-vasile/mimetype"
+	"github.com/sirupsen/logrus"
 	"gitlab.sikapp.ir/sikatech/eshop/eshop-sdk-go-v1/database"
 	"gorm.io/gorm"
 )
@@ -46,6 +47,10 @@ type File struct {
 	// private
 	err error
 	src *os.File
+}
+
+func (File) TableName() string {
+	return "local_files"
 }
 
 func NewFile(path string, reContentType *regexp.Regexp, reName *regexp.Regexp) *File {
@@ -100,6 +105,14 @@ func (f *File) Error() error {
 	return f.err
 }
 
+func (f *File) Reader() *os.File {
+	if f.err != nil {
+		return nil
+	} else {
+		return f.src
+	}
+}
+
 func (f *File) IsOpen() error {
 	if f.src != nil {
 		return nil
@@ -123,8 +136,11 @@ func (f *File) Open() *File {
 func (f *File) Close() *File {
 	if f.err != nil {
 		return f
+	} else if err := f.src.Close(); err != nil {
+		logrus.Errorln(err)
+		return f
 	} else {
-		f.src.Close()
+		f.src = nil
 		return f
 	}
 }

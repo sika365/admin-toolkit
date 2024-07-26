@@ -23,3 +23,5 @@ go.work.sum
 .DS_Store
 *.db
 config.json
+\.tmp
+\.temp

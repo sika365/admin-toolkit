@@ -19,11 +19,11 @@ type TestRequirements struct {
 func PreparingTest() *TestRequirements {
 	var (
 		testReq = TestRequirements{
-			Config: &config.ServiceConfig{},
+			Config: config.Config(),
 		}
 	)
 
-	if err := simple.ReadConfig("config.test.json", testReq.Config); err != nil {
+	if err := simple.ReadConfig("config.test.json", config.Config()); err != nil {
 		logrus.Exit(1)
 	}
 

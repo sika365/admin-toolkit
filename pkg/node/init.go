@@ -1,13 +1,16 @@
-package product
+package node
 
 import (
 	simutils "github.com/alifakhimi/simple-utils-go"
+
 	"github.com/sika365/admin-tools/pkg/client"
 	"github.com/sika365/admin-tools/registrar"
 )
 
 const (
-	PackageName = "product"
+	PackageName = "node"
+	ExcelRegex  = `^.*\.xlsx?$`
+	CSVRegex    = `^.*\.csv?$`
 )
 
 type Package struct {
@@ -29,9 +32,9 @@ func New(h *simutils.HttpServer, db *simutils.DBConnection, client *client.Clien
 	}
 	if i.repo, i.err = newRepo(); i.err != nil {
 		return i
-	} else if i.logic, i.err = newLogic(db, client, i.repo); i.err != nil {
+	} else if i.logic, i.err = newLogic(i.repo, db, client); i.err != nil {
 		return i
-	} else if i.rest, i.err = newRest(h, i.logic); i.err != nil {
+	} else if i.rest, i.err = newRest(i.logic, h); i.err != nil {
 		return i
 	} else {
 		return i
