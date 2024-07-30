@@ -11,9 +11,9 @@ import (
 )
 
 type Repo interface {
-	Create(ctx *context.Context, db *gorm.DB, nodes Nodes) error
+	Create(ctx *context.Context, db *gorm.DB, nodes LocalNodes) error
 	Read(ctx *context.Context, db *gorm.DB, filters url.Values) (MapNodes, error)
-	Update(ctx *context.Context, db *gorm.DB, node *Node, filters url.Values) error
+	Update(ctx *context.Context, db *gorm.DB, node *LocalNode, filters url.Values) error
 	Delete(ctx *context.Context, db *gorm.DB, id database.PID, filters url.Values) error
 }
 
@@ -26,7 +26,7 @@ func newRepo() (Repo, error) {
 }
 
 // Create implements Repo.
-func (i *repo) Create(ctx *context.Context, db *gorm.DB, nodes Nodes) error {
+func (i *repo) Create(ctx *context.Context, db *gorm.DB, nodes LocalNodes) error {
 	if len(nodes) == 0 {
 		return nil
 	} else if err := db.CreateInBatches(nodes, 100).Error; err != nil {
@@ -38,7 +38,7 @@ func (i *repo) Create(ctx *context.Context, db *gorm.DB, nodes Nodes) error {
 
 // Read fetch nodes with filters
 func (i *repo) Read(ctx *context.Context, db *gorm.DB, filters url.Values) (nodes MapNodes, err error) {
-	var stored Nodes
+	var stored LocalNodes
 	if err = utils.
 		BuildGormQuery(ctx, db, filters).
 		Find(&stored).Error; err != nil {
@@ -49,7 +49,7 @@ func (i *repo) Read(ctx *context.Context, db *gorm.DB, filters url.Values) (node
 }
 
 // Update implements Repo.
-func (i *repo) Update(ctx *context.Context, db *gorm.DB, node *Node, filters url.Values) error {
+func (i *repo) Update(ctx *context.Context, db *gorm.DB, node *LocalNode, filters url.Values) error {
 	panic("unimplemented")
 }
 

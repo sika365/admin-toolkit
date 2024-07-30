@@ -60,9 +60,9 @@ func BuildGormQuery(ctx *context.Context, db *gorm.DB, queryParams url.Values) *
 		case "includes":
 		default:
 			if len(values) == 1 {
-				qb.Where(fmt.Sprintf("%s = ?", field), values)
+				qb = qb.Where(fmt.Sprintf("%s = ?", field), values)
 			} else {
-				qb.Where(fmt.Sprintf("%s in ?", field), values)
+				qb = qb.Where(fmt.Sprintf("%s in ?", field), values)
 			}
 		}
 	}

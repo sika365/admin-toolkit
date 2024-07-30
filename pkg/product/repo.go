@@ -1,32 +1,41 @@
 package product
 
 import (
+	"errors"
+	"fmt"
 	"net/url"
 	"regexp"
 
+	"gitlab.sikapp.ir/sikatech/eshop/eshop-sdk-go-v1/database"
+	"gitlab.sikapp.ir/sikatech/eshop/eshop-sdk-go-v1/models"
 	"gorm.io/gorm"
 
 	simutils "github.com/alifakhimi/simple-utils-go"
 	"github.com/sika365/admin-tools/context"
+	"github.com/sika365/admin-tools/pkg/client"
 	"github.com/sika365/admin-tools/pkg/image"
 	"github.com/sika365/admin-tools/utils"
+	"github.com/sirupsen/logrus"
 )
 
 type Repo interface {
 	Create(ctx *context.Context, db *gorm.DB, products LocalProducts) error
-	CreateRecord(ctx *context.Context, db *gorm.DB, prodRecs ...*ProductRecord) error
+	CreateRecord(ctx *context.Context, db *gorm.DB, prodRecs ProductRecords) error
 	Read(ctx *context.Context, db *gorm.DB, filters url.Values) (MapProducts, error)
-	ReadByBarcode(ctx *context.Context, db *gorm.DB, barcode string) (MapProducts, error)
+	ReadByBarcode(ctx *context.Context, db *gorm.DB, rec *ProductRecord, filters url.Values) (*ProductRecord, error)
 	ReadImagesWithoutProduct(ctx *context.Context, db *gorm.DB, filters url.Values) (mimages image.MapImages, err error)
 	Update(ctx *context.Context, db *gorm.DB, product *LocalProduct, filters url.Values) error
 	Delete(ctx *context.Context, db *gorm.DB, id simutils.PID, filters url.Values) error
 }
 
 type repo struct {
+	client *client.Client
 }
 
-func newRepo() (Repo, error) {
-	r := &repo{}
+func newRepo(client *client.Client) (Repo, error) {
+	r := &repo{
+		client: client,
+	}
 	return r, nil
 }
 
@@ -42,7 +51,7 @@ func (i *repo) Create(ctx *context.Context, db *gorm.DB, products LocalProducts)
 }
 
 // Create stores product records
-func (i *repo) CreateRecord(ctx *context.Context, db *gorm.DB, prodRecs ...*ProductRecord) error {
+func (i *repo) CreateRecord(ctx *context.Context, db *gorm.DB, prodRecs ProductRecords) error {
 	if err := db.CreateInBatches(prodRecs, 100).Error; err != nil {
 		return err
 	} else {
@@ -63,14 +72,35 @@ func (i *repo) Read(ctx *context.Context, db *gorm.DB, filters url.Values) (prod
 }
 
 // ReadByBarcode reads products bye barcode
-func (i *repo) ReadByBarcode(ctx *context.Context, db *gorm.DB, barcode string) (MapProducts, error) {
-	var stored LocalProducts
+func (i *repo) ReadByBarcode(ctx *context.Context, db *gorm.DB, rec *ProductRecord, filters url.Values) (*ProductRecord, error) {
+	var stored ProductRecord
 	if err := db.
-		// Where("all_barcodes like ?", "'%"+barcode+";%'").
-		Find(&stored).Error; err != nil {
+		Preload("LocalProduct").
+		Preload("LocalProduct.Cover").
+		Preload("LocalProduct.Gallery").
+		Preload("LocalProduct.Product").
+		Preload("LocalProduct.Product.Nodes").
+		Preload("LocalCategory.Cover.Image").
+		Preload("LocalCategory.Cover.File").
+		Preload("LocalCategory.Category").
+		Preload("LocalCategory.Category.Nodes").
+		Preload("LocalCategory.Nodes").
+		Where("barcode = ?", rec.Barcode).
+		Take(&stored).Error; errors.Is(err, gorm.ErrRecordNotFound) {
+		// register from remote
+		if product, err := i.client.GetProductbyBarcode(ctx, rec.Barcode, filters); err != nil {
+			return nil, err
+		} else if rec.LocalProduct = FromProduct(product); rec.LocalProduct == nil {
+			return nil, fmt.Errorf("nil local product")
+		} else if err := i.CreateRecord(ctx, db, ProductRecords{rec}); err != nil {
+			return nil, err
+		} else {
+			return rec, nil
+		}
+	} else if err != nil {
 		return nil, err
 	} else {
-		return NewMapProducts(stored...), nil
+		return &stored, nil
 	}
 }
 
@@ -79,8 +109,9 @@ func (i *repo) ReadImagesWithoutProduct(ctx *context.Context, db *gorm.DB, filte
 	if err = utils.
 		BuildGormQuery(ctx, db, filters).
 		InnerJoins("File").
-		Joins("LEFT JOIN product_images ON images.id = product_images.image_id AND product_images.deleted_at IS NULL").
-		Where("product_images.product_id IS NULL").
+		InnerJoins("Image").
+		Joins("LEFT JOIN product_images ON local_images.id = product_images.local_image_id AND product_images.deleted_at IS NULL").
+		Where("product_images.local_product_id IS NULL").
 		// Where("images.title REGEXP '^[0-9]+$'").
 		Find(&images).Error; err != nil {
 		return nil, err
@@ -98,8 +129,31 @@ func (i *repo) ReadImagesWithoutProduct(ctx *context.Context, db *gorm.DB, filte
 }
 
 // Update implements Repo.
-func (i *repo) Update(ctx *context.Context, db *gorm.DB, product *LocalProduct, filters url.Values) error {
-	panic("unimplemented")
+func (i *repo) Update(ctx *context.Context, db *gorm.DB, lprod *LocalProduct, filters url.Values) error {
+	if rprod, err := i.client.PutProduct(ctx, lprod.Product); err != nil {
+		return err
+	} else if lprod.Product = rprod; false {
+		return nil
+	} else if err := db.
+		Model(&LocalProduct{
+			CommonTableFields: models.CommonTableFields{Model: database.Model{ID: lprod.ID}},
+		}).
+		Updates(lprod).Error; err != nil {
+		return err
+	} else if err := db.
+		Model(lprod).
+		Association("Gallery").
+		Replace(lprod.Gallery); err != nil {
+		return err
+	} else if err := db.
+		Model(lprod).
+		Association("Product").
+		Replace(lprod.Product); err != nil {
+		return err
+	} else {
+		logrus.Infof("%s Updated", lprod.Product.LocalProduct.Barcodes)
+		return nil
+	}
 }
 
 // Delete implements Repo.

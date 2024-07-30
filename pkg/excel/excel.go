@@ -70,17 +70,17 @@ func LoadExcels(ctx *context.Context, inputDir string, maxDepth int) (file.MapFi
 	if inputDir == "" {
 		inputDir = "."
 	}
-	tempDir := ".temp"
+	tempDir := inputDir
 
 	if reExcel, err := regexp.Compile(ExcelRegex); err != nil {
 		return nil, err
-	} else if xlsxFiles, _ := file.WalkDir(inputDir, maxDepth, nil, reExcel); len(xlsxFiles) == 0 {
+	} else if xlsxFiles, _ := file.WalkDir(inputDir, maxDepth, nil, reExcel); false {
 		logrus.Info("!!! no excel files found !!!")
-		return nil, nil
 	} else if err := ConvertExcelsToCSVs(ctx, inputDir, tempDir, true, xlsxFiles); err != nil {
 		logrus.Info("xxx convert File to csv failed xxx")
-		return nil, err
-	} else if reCSV, err := regexp.Compile(CSVRegex); err != nil {
+	}
+
+	if reCSV, err := regexp.Compile(CSVRegex); err != nil {
 		return nil, err
 	} else if csvFiles, _ := file.WalkDir(tempDir, maxDepth, nil, reCSV); len(csvFiles) == 0 {
 		logrus.Info("!!! no excel files found !!!")

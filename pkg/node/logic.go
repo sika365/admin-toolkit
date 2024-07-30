@@ -12,9 +12,9 @@ import (
 )
 
 type Logic interface {
-	Find(ctx *context.Context, req *SyncRequest, filters url.Values) (Nodes, error)
-	CreateProduct(ctx *context.Context, subNodes Nodes, batchSize int) error
-	Sync(ctx *context.Context, req *SyncRequest, filters url.Values) (Nodes, error)
+	Find(ctx *context.Context, req *SyncRequest, filters url.Values) (LocalNodes, error)
+	CreateProduct(ctx *context.Context, subNodes LocalNodes, batchSize int) error
+	Sync(ctx *context.Context, req *SyncRequest, filters url.Values) (LocalNodes, error)
 }
 
 type logic struct {
@@ -32,7 +32,7 @@ func newLogic(repo Repo, conn *simutils.DBConnection, client *client.Client) (Lo
 	return l, nil
 }
 
-func (l *logic) Find(ctx *context.Context, req *SyncRequest, filters url.Values) (nodes Nodes, err error) {
+func (l *logic) Find(ctx *context.Context, req *SyncRequest, filters url.Values) (nodes LocalNodes, err error) {
 	q := l.conn.DB.WithContext(ctx.Request().Context())
 
 	if nodes, err := l.repo.Read(ctx, q, filters); err != nil {
@@ -42,7 +42,7 @@ func (l *logic) Find(ctx *context.Context, req *SyncRequest, filters url.Values)
 	}
 }
 
-func (l *logic) Sync(ctx *context.Context, req *SyncRequest, filters url.Values) (nodes Nodes, err error) {
+func (l *logic) Sync(ctx *context.Context, req *SyncRequest, filters url.Values) (nodes LocalNodes, err error) {
 	// var (
 	// 	batchSize      = 5
 	// 	filtersEncoded = filters.Encode()
@@ -112,7 +112,7 @@ func (l *logic) Sync(ctx *context.Context, req *SyncRequest, filters url.Values)
 	return nodes, nil
 }
 
-func (l *logic) CreateProduct(ctx *context.Context, subNodes Nodes, batchSize int) error {
+func (l *logic) CreateProduct(ctx *context.Context, subNodes LocalNodes, batchSize int) error {
 	// pool := pond.New(batchSize, 0)
 
 	// for _, subNode := range subNodes {

@@ -2,10 +2,10 @@ POST http://localhost:8080/api/v1/categories/sync
 content-type: application/json
 
 {
-  "root": "./samples/categories/multipart",
+  "root": "./samples/categories/atisaz-multipart",
   "max_depth": 1,
   "content_types": ".+",
   "category_header_map": {
-    "title": "گروه کالا"
+    "title": "group"
   }
 }

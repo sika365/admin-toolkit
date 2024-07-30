@@ -15,6 +15,8 @@ import (
 )
 
 type Logic interface {
+	Find(ctx *context.Context) error
+	Store(ctx *context.Context, req *SyncRequest, doc *simscheme.Document) error
 	Sync(ctx *context.Context, req *SyncRequest, filters url.Values) (*simscheme.Document, error)
 }
 
@@ -38,21 +40,23 @@ func (l *logic) Find(ctx *context.Context) error {
 }
 
 func (l *logic) Store(ctx *context.Context, req *SyncRequest, doc *simscheme.Document) error {
-	if uncategorizedNode, err := l.client.GetNodeByAlias(ctx, "Uncategorized"); err != nil {
-		return err
-	} else {
+	if req.ReplaceNodes {
 		if err := l.repo.Clear(ctx, l.conn.DB.WithContext(ctx.Request().Context())); err != nil {
 			return err
 		}
+	}
 
+	if uncategorizedNode, err := l.client.GetNodeByAlias(ctx, "Uncategorized"); err != nil {
+		return err
+	} else {
 		for _, node := range doc.Nodes {
 			var (
 				rec = node.Data.(*CategoryRecord)
 			)
 
-			category, err := l.client.GetCategoryByAlias(ctx, rec.Title)
+			rcategory, err := l.client.GetCategoryByAlias(ctx, rec.Title)
 			if errors.Is(err, models.ErrNotFound) {
-				if category, err = l.client.StoreCategory(ctx, &models.Category{
+				if rcategory, err = l.client.StoreCategory(ctx, &models.Category{
 					Title: rec.Title,
 					Alias: rec.Title,
 				}, uncategorizedNode); err != nil {
@@ -66,10 +70,22 @@ func (l *logic) Store(ctx *context.Context, req *SyncRequest, doc *simscheme.Doc
 				Title:    rec.Title,
 				Alias:    rec.Title,
 				Slug:     rec.Title,
-				Category: category,
+				Category: rcategory,
 			}
 
-			if err := l.repo.Create(ctx, l.conn.DB.WithContext(ctx.Request().Context()), rec); err != nil {
+			if len(rcategory.Nodes) > 0 {
+				for _, n := range rcategory.Nodes {
+					if len(n.Nodes) > 0 {
+						n.Nodes, _ = n.Nodes.ToNested()
+					}
+				}
+			}
+
+			if err := l.repo.Create(
+				ctx,
+				l.conn.DB.WithContext(ctx.Request().Context()),
+				rec,
+			); err != nil {
 				return err
 			}
 		}

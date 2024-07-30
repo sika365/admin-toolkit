@@ -58,7 +58,7 @@ func ToProduct(prd *LocalProduct) *models.Product {
 }
 
 func (LocalProduct) TableName() string {
-	return "products"
+	return "local_products"
 }
 
 func (p *LocalProduct) Key() string {

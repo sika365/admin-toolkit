@@ -62,8 +62,8 @@ func (r *rest) SyncByImages(ectx echo.Context) error {
 		return err
 	} else {
 		return simutils.ReplyTemplate(ctx, http.StatusOK, nil,
-			&SyncResponse{Data: NewMapProducts(products...)},
-			simutils.CreatePaginateTemplate(len(products), 0, len(products)),
+			&SyncByImagesResponse{Data: products},
+			simutils.CreatePaginateTemplate(len(products.Nodes), 0, len(products.Nodes)),
 		)
 	}
 }

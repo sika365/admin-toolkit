@@ -1,4 +1,5 @@
-POST http://localhost:8080/api/v1/products/sync/images?order_by=newest&check_availability=false&search_products_in_nodes=true&search_in_node=false&search_in_sub_node=false&get_product_parents=false&search_in_reserved_quantity=false&search_in_limited_quantity=false&coverstatus=0&total=0&limit=20&offset=0&cover_status=-1&view=node&remote_pagination=false&remote_search=false&includes=Cover&includes=Nodes.Parent.Category&includes=Tags.Node.Category&includes=CategoryNodes&store_id=38&branch_id=47&stock_id=45
+### Sync by Barcode naming Image
+POST http://localhost:8080/api/v1/products/sync/images?order_by=newest&check_availability=false&search_products_in_nodes=true&search_in_node=false&search_in_sub_node=false&get_product_parents=false&search_in_reserved_quantity=false&search_in_limited_quantity=false&limit=20&offset=0&cover_status=0&view=node&remote_pagination=false&remote_search=false&includes=Cover&includes=Nodes.Parent.Category&includes=Tags.Node.Category&includes=CategoryNodes&store_id=38&branch_id=47&stock_id=45
 content-type: application/json
 
 {
@@ -6,3 +7,38 @@ content-type: application/json
   "max_depth": 1,
   "content_types": "image/.+"
 }
+
+### Sync by Spreadsheets
+POST http://localhost:8080/api/v1/products/sync/spreadsheets?order_by=newest&check_availability=false&search_products_in_nodes=true&search_in_node=false&search_in_sub_node=false&get_product_parents=false&search_in_reserved_quantity=false&search_in_limited_quantity=false&limit=20&offset=0&cover_status=0&view=node&remote_pagination=false&remote_search=false&includes=Cover&includes=Nodes.Parent.Category&includes=Tags.Node.Category&includes=CategoryNodes&store_id=38&branch_id=47&stock_id=45
+content-type: application/json
+
+{
+  "root": "./samples/categories/az-multipart",
+  "max_depth": 1,
+  "content_types": ".+",
+  "product_header_map": {
+    "title": "title",
+    "barcode": "barcode",
+    "category": "group"
+  }
+}
+
+# "product_header_map": {
+#   "title": "نام",
+#   "barcode": "بارکد",
+#   "category": "گروه کالا"
+# }
+
+###
+curl 'http://192.168.1.230:20001/admin/api/v1/nodes/products?store_id=38&branch_id=47&stock_id=45' \
+  -H 'Accept: application/json' \
+  -H 'Accept-Language: en-US,en;q=0.9,fa;q=0.8' \
+  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhdWQiOiIwIiwiZXhwIjoxNzUzMzQ0MjYxLCJqdGkiOiI3NCIsInN1YiI6IkF0aXNheiJ9.ZSkW2rXymbQo9fzhWIfNGSWmxAR1BIv7Z2RRR0bPoDA' \
+  -H 'Connection: keep-alive' \
+  -H 'Content-Type: application/json' \
+  -H 'Cookie: token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhdWQiOiIwIiwiZXhwIjoxNzUzMzQ0MjYxLCJqdGkiOiI3NCIsInN1YiI6IkF0aXNheiJ9.ZSkW2rXymbQo9fzhWIfNGSWmxAR1BIv7Z2RRR0bPoDA' \
+  -H 'Origin: http://192.168.1.230:20001' \
+  -H 'Referer: http://192.168.1.230:20001/admin/nodes/381883' \
+  -H 'User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36' \
+  --data-raw '{"nodes":{"381883":["71107"]},"remote_ids":["71107"],"node_ids":[381883]}' \
+  --insecure

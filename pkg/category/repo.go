@@ -40,6 +40,11 @@ func (i *repo) Read(ctx *context.Context, db *gorm.DB, filters url.Values) (Loca
 	var stored LocalCategories
 	if err := utils.
 		BuildGormQuery(ctx, db, filters).
+		Preload("Cover.Image").
+		Preload("Cover.File").
+		Preload("Category").
+		Preload("Category.Nodes").
+		Preload("Nodes").
 		Find(&stored).Error; err != nil {
 		return nil, err
 	} else {
@@ -58,7 +63,7 @@ func (i *repo) Delete(ctx *context.Context, db *gorm.DB, id database.PID, filter
 }
 
 func (i *repo) Clear(ctx *context.Context, db *gorm.DB) error {
-	if err := db.Unscoped().Delete(&CategoryRecord{}).Error; err != nil {
+	if err := db.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(&CategoryRecord{}).Error; err != nil {
 		return err
 	}
 	return nil

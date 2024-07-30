@@ -41,9 +41,9 @@ type SyncBySpreadSheetsResponse struct {
 	templates.ResponseTemplate
 	Data *simscheme.Document `json:"data,omitempty"`
 }
-type SyncResponse struct {
+type SyncByImagesResponse struct {
 	templates.ResponseTemplate
-	Data MapProducts `json:"data,omitempty"`
+	Data *simscheme.Document `json:"data,omitempty"`
 }
 
 type ProductSearchResponse struct {

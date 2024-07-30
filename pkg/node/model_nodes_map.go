@@ -1,8 +1,8 @@
 package node
 
-type MapNodes map[string]*Node
+type MapNodes map[string]*LocalNode
 
-func NewMapNodes(nodes ...*Node) MapNodes {
+func NewMapNodes(nodes ...*LocalNode) MapNodes {
 	mns := make(MapNodes)
 	for _, n := range nodes {
 		mns.Add(n)
@@ -10,7 +10,7 @@ func NewMapNodes(nodes ...*Node) MapNodes {
 	return mns
 }
 
-func (mns MapNodes) Add(node *Node) MapNodes {
+func (mns MapNodes) Add(node *LocalNode) MapNodes {
 	if k := node.Key(); k == "" {
 		return mns
 	} else {
@@ -19,7 +19,7 @@ func (mns MapNodes) Add(node *Node) MapNodes {
 	}
 }
 
-func (mns MapNodes) Get(key string) *Node {
+func (mns MapNodes) Get(key string) *LocalNode {
 	return mns[key]
 }
 
@@ -31,8 +31,8 @@ func (mns MapNodes) GetKeys() []string {
 	return keys
 }
 
-func (mns MapNodes) GetValues() Nodes {
-	ns := make(Nodes, 0, len(mns))
+func (mns MapNodes) GetValues() LocalNodes {
+	ns := make(LocalNodes, 0, len(mns))
 	for _, n := range mns {
 		ns = append(ns, n)
 	}

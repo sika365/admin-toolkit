@@ -54,8 +54,8 @@ func (svc *Service) Init() error {
 	} else if err := registrar.
 		Add(file.New(h, db, client)).
 		Add(image.New(h, db, client)).
-		Add(product.New(h, db, client)).
 		Add(category.New(h, db, client)).
+		Add(product.New(h, db, client)).
 		Add(node.New(h, db, client)).
 		// Add more package
 		Init(); err != nil {

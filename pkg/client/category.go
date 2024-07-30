@@ -20,7 +20,7 @@ func (c *Client) GetCategoryByAlias(ctx *context.Context, alias string) (categor
 		}).
 		SetQueryParamsFromValues(url.Values{
 			"limit":    []string{cast.ToString(1)},
-			"includes": []string{"Nodes"},
+			"includes": []string{"Nodes.Parent"},
 			"excludes": []string{"product_nodes", "current_node"},
 		}).
 		SetResult(&categoryResp).

@@ -207,3 +207,11 @@ func (f *File) MatchFileName(re *regexp.Regexp) *File {
 		return f
 	}
 }
+
+// func (f *File) Copy(dest string) *File {
+// 	if _, err := os.Stat(f.Path); err != nil {
+// 		return f
+// 	} else {
+
+// 	}
+// }

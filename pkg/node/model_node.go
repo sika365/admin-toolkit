@@ -9,9 +9,9 @@ import (
 	"github.com/sika365/admin-tools/pkg/file"
 )
 
-type Nodes []*Node
+type LocalNodes []*LocalNode
 
-type Node struct {
+type LocalNode struct {
 	simutils.CommonTableFields
 	simutils.PolymorphicFields
 	Name          string        `json:"name,omitempty"`
@@ -19,15 +19,15 @@ type Node struct {
 	Slug          string        `json:"slug,omitempty" gorm:"index"`
 	ParentID      *simutils.PID `json:"parent_id,omitempty" gorm:"default:null;index"`
 	Priority      int           `json:"priority,omitempty"`
-	Parent        *Node         `json:"parent,omitempty"`
-	SubNodes      Nodes         `json:"sub_nodes,omitempty" gorm:"foreignkey:ParentID"`
+	Parent        *LocalNode    `json:"parent,omitempty"`
+	SubNodes      LocalNodes    `json:"sub_nodes,omitempty" gorm:"foreignkey:ParentID"`
 	SubNodesCount int           `json:"sub_nodes_count" gorm:"-:all"`
 }
 
-func FromFiles(files file.MapFiles, req ScanRequest, fn func(header map[string]int, rec []string)) (Nodes, MapNodes) {
+func FromFiles(files file.MapFiles, req ScanRequest, fn func(header map[string]int, rec []string)) (LocalNodes, MapNodes) {
 	var (
 		m     = make(MapNodes)
-		nodes = make(Nodes, 0, len(files))
+		nodes = make(LocalNodes, 0, len(files))
 	)
 
 	for _, f := range files {
@@ -63,10 +63,10 @@ func FromFiles(files file.MapFiles, req ScanRequest, fn func(header map[string]i
 	return nodes, m
 }
 
-func (Node) TableName() string {
-	return "nodes"
+func (LocalNode) TableName() string {
+	return "local_nodes"
 }
 
-func (n *Node) Key() string {
+func (n *LocalNode) Key() string {
 	return n.ID.String()
 }
