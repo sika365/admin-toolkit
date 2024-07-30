@@ -56,7 +56,7 @@ func (i *repo) ReadFiles(ctx *context.Context, db *gorm.DB, files MapImages, fil
 	}
 }
 
-// Create implements Repo.
+// Create ...
 func (i *repo) Create(ctx *context.Context, db *gorm.DB, files LocalImages) error {
 	if len(files) == 0 {
 		return nil
@@ -67,12 +67,12 @@ func (i *repo) Create(ctx *context.Context, db *gorm.DB, files LocalImages) erro
 	}
 }
 
-// Update implements Repo.
+// Update ...
 func (i *repo) Update(ctx *context.Context, db *gorm.DB, file *LocalImage, filters url.Values) error {
 	panic("unimplemented")
 }
 
-// Delete implements Repo.
+// Delete ...
 func (i *repo) Delete(ctx *context.Context, db *gorm.DB, id database.PID, filters url.Values) error {
 	panic("unimplemented")
 }

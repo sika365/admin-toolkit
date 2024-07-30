@@ -246,7 +246,7 @@ func (l *logic) SetImage(_ *context.Context, req *SyncByImageRequest, rec *Produ
 			// }
 			// product.CoverID, _ = img.ID.ToNullPID()
 			lprod.Cover = limg
-			rprod.CoverID, _ = limg.ID.ToNullPID()
+			rprod.CoverID, _ = limg.ImageID.ToNullPID()
 		} else if req.ReplaceGallery || !req.IgnoreAddToGallery {
 			lprod.Gallery = append(lprod.Gallery, &ProductImage{
 				LocalImageID:   limg.ID,

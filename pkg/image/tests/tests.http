@@ -3,6 +3,7 @@ content-type: application/json
 
 {
   "root": "./samples/barcodes",
-  "max_depth": 1,
-  "content_types": "image/.+"
+  "max_depth": 0,
+  "content_types": "image/.+",
+  "replace": true
 }
