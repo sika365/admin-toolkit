@@ -50,7 +50,7 @@ func ConvertExcelsToCSVs(ctx *context.Context, inputDir, outputDir string, force
 
 	for _, f := range excelFiles {
 		xlsxPath := f.Path
-		csvPath := path.Join(outputDir, fmt.Sprintf("%s.csv", f.Name))
+		csvPath := path.Join(outputDir, fmt.Sprintf("._%s.csv", f.Name))
 
 		if _, err := os.Stat(csvPath); err == nil && forceReplace {
 			if err := os.Remove(csvPath); err != nil {
