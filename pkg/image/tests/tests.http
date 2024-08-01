@@ -2,8 +2,8 @@ POST http://localhost:8080/api/v1/images/sync
 content-type: application/json
 
 {
-  "root": "./samples/barcodes",
-  "max_depth": 0,
+  "root": "/mnt/inputs/store-images/bookmall",
+  "max_depth": 20,
   "content_types": "image/.+",
   "replace": true
 }
