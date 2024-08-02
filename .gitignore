@@ -22,7 +22,8 @@ go.work
 go.work.sum
 .DS_Store
 *.db
-config*.json
+config*\.json
+!config.sample.json
 \.tmp
 \.temp
 __debug*
