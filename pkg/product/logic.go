@@ -7,6 +7,7 @@ import (
 	"github.com/alifakhimi/simple-utils-go/simscheme"
 	"github.com/alitto/pond"
 	"github.com/sirupsen/logrus"
+	"github.com/spf13/cast"
 	"gitlab.sikapp.ir/sikatech/eshop/eshop-sdk-go-v1/database"
 	"gitlab.sikapp.ir/sikatech/eshop/eshop-sdk-go-v1/models"
 
@@ -101,59 +102,73 @@ func (l *logic) Create(ctx *context.Context, prods LocalProducts, batchSize int)
 func (l *logic) SyncByImages(ctx *context.Context, req *SyncByImageRequest, filters url.Values) (*simscheme.Document, error) {
 	var (
 		err              error
-		batchSize        = 1
+		offset           = 0
+		limit            = 100
+		batchSize        = 10
 		mimages          image.MapImages
 		mapBarcodeImages = make(map[string]image.LocalImages)
-		pool             = pond.New(batchSize, 0)
 		prodRecDoc       = simscheme.
 					GetSchema().
 					AddNewDocumentWithType(&ProductRecord{})
 	)
 
 	// Get barcodes from image's title if synced and there aren't any related product
-	if mimages, err = l.repo.ReadImagesWithoutProduct(
-		ctx,
-		l.conn.DB.WithContext(ctx.Request().Context()),
-		url.Values{},
-	); err != nil {
-		return nil, err
+	for {
+		if mimages, err = l.repo.ReadImagesWithoutProduct(
+			ctx,
+			l.conn.DB.WithContext(ctx.Request().Context()),
+			url.Values{
+				"limit":  []string{cast.ToString(limit)},
+				"offset": []string{cast.ToString(offset)},
+			},
+		); err != nil {
+			return prodRecDoc, err
+		} else if len(mimages) == 0 {
+			break
+		}
+
+		for _, img := range mimages {
+			// TODO check barcode pattern
+			mapBarcodeImages[img.Image.Title] = append(mapBarcodeImages[img.Image.Title], img)
+		}
+
+		pool := pond.New(batchSize, 0)
+
+		for barcode, imgs := range mapBarcodeImages {
+			pool.Submit(func() {
+				var (
+					prodRec = &ProductRecord{Barcode: barcode}
+				)
+
+				// Is the image cover or for gallery?
+				// Retrieve product by barcode
+				if prd, err := l.repo.ReadByBarcode(ctx,
+					l.conn.DB.WithContext(ctx.Request().Context()),
+					prodRec,
+					filters,
+				); err != nil {
+					logrus.Warnf("product.logic.SyncByImages > product.repo.ReadByBarcode error: %v", err)
+					return
+				} else if err := l.SetImage(ctx, req, prd, imgs); err != nil {
+					logrus.Warnf("product.logic.SyncByImages > product.SetImage error: %v", err)
+					return
+				} else if err := l.repo.Update(ctx,
+					l.conn.DB.WithContext(ctx.Request().Context()),
+					prd.LocalProduct,
+					nil); err != nil {
+					logrus.Warnf("product.logic.SyncByImages > product.repo.Update error: %v", err)
+					return
+				} else {
+					logrus.Infof("%s Updated", prd.Barcode)
+					prodRecDoc.AddNode(prodRec)
+				}
+			})
+		}
+
+		pool.StopAndWait()
+
+		offset += limit
 	}
-
-	for _, img := range mimages {
-		// TODO check barcode pattern
-		mapBarcodeImages[img.Image.Title] = append(mapBarcodeImages[img.Image.Title], img)
-	}
-
-	for barcode, imgs := range mapBarcodeImages {
-		pool.Submit(func() {
-			var (
-				prodRec = &ProductRecord{Barcode: barcode}
-			)
-			// https://sika365.com/admin/api/v1/nodes/root/products?order_by=newest&search=7899665999353&check_availability=false&search_products_in_nodes=true&search_in_node=false&search_in_sub_node=false&get_product_parents=false&search_in_reserved_quantity=false&search_in_limited_quantity=false&coverstatus=0&total=0&limit=20&offset=0&cover_status=-1&view=node&remote_pagination=false&remote_search=false&includes=Cover&includes=Nodes.Parent.Category&includes=Tags.Node.Category&includes=CategoryNodes&store_id=38&branch_id=47&stock_id=45
-
-			// Is the image cover or for gallery?
-			// Retrieve product by barcode
-			if prd, err := l.repo.ReadByBarcode(ctx,
-				l.conn.DB.WithContext(ctx.Request().Context()),
-				prodRec,
-				filters,
-			); err != nil {
-				return
-			} else if err := l.SetImage(ctx, req, prd, imgs); err != nil {
-				return
-			} else if err := l.repo.Update(ctx,
-				l.conn.DB.WithContext(ctx.Request().Context()),
-				prd.LocalProduct,
-				nil); err != nil {
-				return
-			} else {
-				logrus.Infof("%s Updated", prd.Barcode)
-				prodRecDoc.AddNode(prodRec)
-			}
-		})
-	}
-
-	pool.StopAndWait()
 
 	return prodRecDoc, nil
 }
@@ -230,7 +245,7 @@ func (l *logic) SetImage(_ *context.Context, req *SyncByImageRequest, rec *Produ
 	lprod := rec.LocalProduct
 	rprod := lprod.Product
 
-	if req.ReplaceGallery {
+	if req.ReplaceGallery && rprod.LocalProduct != nil && len(rprod.LocalProduct.Images) > 0 {
 		clear(rprod.Images)
 		rprod.Images = nil
 	}
@@ -246,6 +261,7 @@ func (l *logic) SetImage(_ *context.Context, req *SyncByImageRequest, rec *Produ
 			// }
 			// product.CoverID, _ = img.ID.ToNullPID()
 			lprod.Cover = limg
+			lprod.CoverID, _ = limg.ID.ToNullPID()
 			rprod.CoverID, _ = limg.ImageID.ToNullPID()
 		} else if req.ReplaceGallery || !req.IgnoreAddToGallery {
 			lprod.Gallery = append(lprod.Gallery, &ProductImage{
@@ -257,6 +273,8 @@ func (l *logic) SetImage(_ *context.Context, req *SyncByImageRequest, rec *Produ
 				ImageID: limg.ID,
 				Image:   limg.Image,
 			})
+		} else {
+			logrus.Infof("no chanes %s", rprod.LocalProduct.Barcodes)
 		}
 	}
 

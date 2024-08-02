@@ -54,7 +54,9 @@ func (c *Client) PutProduct(ctx *context.Context, prd *models.Product) (*models.
 		updatedProductResp = models.ProductsResponse{}
 	)
 
-	if resp, err := c.R().
+	if !database.IsValid(prd.ID) {
+		return prd, nil
+	} else if resp, err := c.R().
 		SetPathParams(map[string]string{
 			"id": prd.ID.String(),
 		}).

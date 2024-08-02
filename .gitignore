@@ -28,3 +28,4 @@ config*.json
 __debug*
 .netrc
 .data
+admin-tools

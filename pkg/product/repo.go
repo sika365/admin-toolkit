@@ -110,7 +110,9 @@ func (i *repo) ReadImagesWithoutProduct(ctx *context.Context, db *gorm.DB, filte
 		BuildGormQuery(ctx, db, filters).
 		InnerJoins("File").
 		InnerJoins("Image").
+		Joins("LEFT JOIN local_products ON local_products.cover_id = local_images.id AND local_products.deleted_at IS NULL").
 		Joins("LEFT JOIN product_images ON local_images.id = product_images.local_image_id AND product_images.deleted_at IS NULL").
+		Where("local_products.cover_id IS NULL").
 		Where("product_images.local_product_id IS NULL").
 		// Where("images.title REGEXP '^[0-9]+$'").
 		Find(&images).Error; err != nil {
@@ -130,7 +132,13 @@ func (i *repo) ReadImagesWithoutProduct(ctx *context.Context, db *gorm.DB, filte
 
 // Update implements Repo.
 func (i *repo) Update(ctx *context.Context, db *gorm.DB, lprod *LocalProduct, filters url.Values) error {
-	if rprod, err := i.client.PutProduct(ctx, lprod.Product); err != nil {
+	if lprod.Product == nil {
+		logrus.Warnf("local product id %s remote product not found", lprod.ID)
+		return nil
+	} else if !lprod.Product.CoverID.IsValid() {
+		logrus.Warnf("local product id %s cover not found", lprod.ID)
+		return nil
+	} else if rprod, err := i.client.PutProduct(ctx, lprod.Product); err != nil {
 		return err
 	} else if lprod.Product = rprod; false {
 		return nil

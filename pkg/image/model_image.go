@@ -5,6 +5,7 @@ import (
 
 	"github.com/sika365/admin-tools/pkg/file"
 	"github.com/sika365/admin-tools/utils"
+	"github.com/sirupsen/logrus"
 	"gitlab.sikapp.ir/sikatech/eshop/eshop-sdk-go-v1/database"
 	"gitlab.sikapp.ir/sikatech/eshop/eshop-sdk-go-v1/models"
 )
@@ -39,6 +40,11 @@ func FromFiles(files file.MapFiles, titlePattern *regexp.Regexp) (LocalImages, M
 	m := make(MapImages)
 	imgs := make(LocalImages, 0, len(files))
 	for _, f := range files {
+		if !titlePattern.MatchString(f.Name) {
+			logrus.Infof("%s is not match with %s", f, titlePattern.String())
+			continue
+		}
+
 		submatch := utils.FindStringSubmatch(titlePattern, f.Name)
 		img := &LocalImage{
 			Image: &models.Image{

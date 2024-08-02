@@ -3,7 +3,7 @@ content-type: application/json
 
 {
   "root": "/mnt/inputs/store-images/bookmall",
-  "max_depth": 20,
+  "max_depth": 10,
   "content_types": "image/.+",
   "replace": true
 }

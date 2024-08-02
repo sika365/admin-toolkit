@@ -261,12 +261,6 @@ github.com/youmark/pkcs8 v0.0.0-20181117223130-1be2e3e5546d/go.mod h1:rHwXgn7Jul
 github.com/yuin/goldmark v1.1.27/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
 github.com/yuin/goldmark v1.2.1/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
 github.com/yuin/goldmark v1.4.13/go.mod h1:6yULJ656Px+3vBD8DxQVa3kxgyrAnzto9xy5taEt/CY=
-gitlab.sikapp.ir/sikatech/eshop/eshop-sdk-go-v1 v1.11.187 h1:c99XN97v9y5OmG6Z+6CG4b5sQxdFWNC/YhxDDeVKFpY=
-gitlab.sikapp.ir/sikatech/eshop/eshop-sdk-go-v1 v1.11.187/go.mod h1:zo4oxgRTVWcHq5nCyfeakUdWizDjXhDZ1WC7aVQ0PeI=
-gitlab.sikapp.ir/sikatech/eshop/eshop-sdk-go-v1 v1.11.188 h1:ZxWqcRTV1TxmAflV/trL00Shb56+/P8cuCe5npZQjNY=
-gitlab.sikapp.ir/sikatech/eshop/eshop-sdk-go-v1 v1.11.188/go.mod h1:zo4oxgRTVWcHq5nCyfeakUdWizDjXhDZ1WC7aVQ0PeI=
-gitlab.sikapp.ir/sikatech/eshop/eshop-sdk-go-v1 v1.11.189 h1:h4erM/MoBlRnlKYVuRAJEsJ8blTb7vuP0rUDllEglS0=
-gitlab.sikapp.ir/sikatech/eshop/eshop-sdk-go-v1 v1.11.189/go.mod h1:zo4oxgRTVWcHq5nCyfeakUdWizDjXhDZ1WC7aVQ0PeI=
 gitlab.sikapp.ir/sikatech/eshop/eshop-sdk-go-v1 v1.11.190 h1:ca+8DwIE8wXmWZbQgxTogV6N3QSedj3j6IBtDccwq7U=
 gitlab.sikapp.ir/sikatech/eshop/eshop-sdk-go-v1 v1.11.190/go.mod h1:zo4oxgRTVWcHq5nCyfeakUdWizDjXhDZ1WC7aVQ0PeI=
 go.mongodb.org/mongo-driver v1.11.4/go.mod h1:PTSz5yu21bkT/wXpkS7WR5f0ddqw5quethTUn9WM+2g=

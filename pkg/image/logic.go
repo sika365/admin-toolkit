@@ -69,7 +69,7 @@ func (l *logic) Save(ctx *context.Context, images LocalImages, replace bool, bat
 			} else if tx := l.conn.DB.WithContext(ctx.Request().Context()); tx == nil {
 				return
 			} else if err := l.repo.Create(ctx, tx, LocalImages{img}); err != nil {
-				logrus.Infof("writing file %v in db failed", img)
+				logrus.Warnf("writing file %v in db failed", img)
 				return
 			}
 		})
@@ -85,11 +85,11 @@ func (l *logic) ReadFiles(ctx *context.Context, root string, maxDepth int, reCon
 		return nil, err
 	} else if reBarcode, err := regexp.Compile(ImageBarcodeRegex); err != nil {
 		return nil, err
-	} else if filteredImages, _ := file.WalkDir(root, maxDepth, reContentType, nil); len(filteredImages) == 0 {
-		logrus.Info("!!! no images found !!!")
+	} else if filteredImages, _ := file.WalkDir(root, maxDepth, reContentType, reBarcode); len(filteredImages) == 0 {
+		logrus.Warnf("!!! no images found in %s !!!", root)
 		return nil, nil
 	} else if _, files = FromFiles(filteredImages, reBarcode); len(files) == 0 {
-		logrus.Info("xxx convert File to Image failed xxx")
+		logrus.Warnf("xxx convert File to Image failed xxx")
 		return files, nil
 	} else {
 		return files, nil
