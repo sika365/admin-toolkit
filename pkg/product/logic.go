@@ -180,6 +180,8 @@ func (l *logic) SyncBySpreadSheets(ctx *context.Context, req *SyncBySpreadSheets
 				AddNewDocumentWithType(&ProductRecord{})
 
 		prodNodeIDs database.PIDs
+		batchSize   = 10
+		pool        = pond.New(batchSize, 0)
 	)
 
 	if req.ProductHeaderMap.Barcode == "" {
@@ -200,42 +202,46 @@ func (l *logic) SyncBySpreadSheets(ctx *context.Context, req *SyncBySpreadSheets
 				}
 			)
 
-			if req.ProductHeaderMap.CategoryAlias != "" {
-				if lcats, err := l.catRepo.Read(ctx,
-					l.conn.DB.WithContext(ctx.Request().Context()),
-					url.Values{
-						"alias": []string{prodRec.CategoryAlias},
-					},
-				); err != nil {
-					return
-				} else if len(lcats) == 1 {
-					prodRec.LocalCategory = lcats[0]
-					for _, n := range prodRec.LocalCategory.Category.Nodes {
-						prodNodeIDs = append(prodNodeIDs, n.ID)
+			pool.Submit(func() {
+				if req.ProductHeaderMap.CategoryAlias != "" {
+					if lcats, err := l.catRepo.Read(ctx,
+						l.conn.DB.WithContext(ctx.Request().Context()),
+						url.Values{
+							"alias": []string{prodRec.CategoryAlias},
+						},
+					); err != nil {
+						return
+					} else if len(lcats) == 1 {
+						prodRec.LocalCategory = lcats[0]
+						for _, n := range prodRec.LocalCategory.Category.Nodes {
+							prodNodeIDs = append(prodNodeIDs, n.ID)
+						}
 					}
 				}
-			}
 
-			if prodRec, err = l.repo.ReadByBarcode(ctx,
-				l.conn.DB.WithContext(ctx.Request().Context()),
-				prodRec,
-				filters,
-			); err != nil {
-				return
-			} else if len(prodNodeIDs) == 0 {
-				// break
-			} else if prodNodes, err := l.client.AddToNodes(ctx, prodRec.LocalProduct.Product, prodNodeIDs); err != nil {
-				return
-			} else if len(prodNodes) == 0 {
-				// break
-			} else {
-				prodRec.LocalProduct.Product = prodNodes[0].Product
-			}
+				if prodRec, err = l.repo.ReadByBarcode(ctx,
+					l.conn.DB.WithContext(ctx.Request().Context()),
+					prodRec,
+					filters,
+				); err != nil {
+					return
+				} else if len(prodNodeIDs) == 0 {
+					// break
+				} else if prodNodes, err := l.client.AddToNodes(ctx, prodRec.LocalProduct.Product, prodNodeIDs); err != nil {
+					return
+				} else if len(prodNodes) == 0 {
+					// break
+				} else {
+					prodRec.LocalProduct.Product = prodNodes[0].Product
+				}
+			})
 
 			prodRecDoc.AddNode(prodRec)
 		},
 	); err != nil {
 		return nil, err
+	} else if pool.StopAndWait(); false {
+		return prodRecDoc, nil
 	} else {
 		return prodRecDoc, nil
 	}

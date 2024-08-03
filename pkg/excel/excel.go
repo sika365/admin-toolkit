@@ -77,7 +77,7 @@ func LoadExcels(ctx *context.Context, inputDir string, maxDepth int) (file.MapFi
 	} else if xlsxFiles, _ := file.WalkDir(inputDir, maxDepth, nil, reExcel); false {
 		logrus.Info("!!! no excel files found !!!")
 	} else if err := ConvertExcelsToCSVs(ctx, inputDir, tempDir, true, xlsxFiles); err != nil {
-		logrus.Info("xxx convert File to csv failed xxx")
+		logrus.Info("xxx convert File to csv failed %w xxx", err)
 	}
 
 	if reCSV, err := regexp.Compile(CSVRegex); err != nil {
@@ -96,7 +96,7 @@ func FromFiles(files file.MapFiles, offset int, fn func(header map[string]int, r
 		// Read header
 		header := make(map[string]int)
 		if h, err := reader.Read(); err != nil {
-			return fmt.Errorf("failed to read header row %d: %w", 1, err)
+			return fmt.Errorf("failed to read header %s row %d: %w", f.Path, 1, err)
 		} else {
 			for i, t := range h {
 				header[t] = i
@@ -105,17 +105,18 @@ func FromFiles(files file.MapFiles, offset int, fn func(header map[string]int, r
 		// Skip the specified number of rows (offset)
 		for i := 1; i < offset; i++ {
 			if _, err := reader.Read(); err != nil {
-				return fmt.Errorf("failed to skip row %d: %w", i+1, err)
+				return fmt.Errorf("failed to skip %s row %d: %w", f.Path, i+1, err)
 			}
 		}
 		// Read the remaining records from the CSV file
 		i := offset + 1 // 1 row header
 		for {
 			if r, err := reader.Read(); err != nil && !errors.Is(err, io.EOF) {
-				return fmt.Errorf("failed to read row %d: %w", i+1, err)
+				return fmt.Errorf("failed to read %s row %d: %w", f.Path, i+1, err)
 			} else if errors.Is(err, io.EOF) {
 				break
 			} else {
+				i += 1
 				fn(header, r)
 			}
 		}
