@@ -178,7 +178,7 @@ func (l *logic) SyncBySpreadSheets(ctx *context.Context) (*simscheme.Document, e
 				GetSchema().
 				AddNewDocumentWithType(&ProductRecord{})
 
-		batchSize = 1
+		batchSize = 10
 		pool      = pond.New(batchSize, 0)
 	)
 
