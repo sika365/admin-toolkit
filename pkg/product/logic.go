@@ -8,7 +8,6 @@ import (
 	"github.com/alitto/pond"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cast"
-	"gitlab.sikapp.ir/sikatech/eshop/eshop-sdk-go-v1/database"
 	"gitlab.sikapp.ir/sikatech/eshop/eshop-sdk-go-v1/models"
 
 	"github.com/sika365/admin-tools/config"
@@ -23,8 +22,8 @@ type Logic interface {
 	Find(ctx *context.Context, req *SyncByImageRequest, filters url.Values) (products LocalProducts, err error)
 	Create(ctx *context.Context, prods LocalProducts, batchSize int) error
 	SyncByImages(ctx *context.Context, req *SyncByImageRequest, filters url.Values) (*simscheme.Document, error)
-	SyncBySpreadSheets(ctx *context.Context, req *SyncBySpreadSheetsRequest, filters url.Values) (*simscheme.Document, error)
-	SetImage(ctx *context.Context, req *SyncByImageRequest, rec *ProductRecord, limages image.LocalImages) error
+	SyncBySpreadSheets(ctx *context.Context) (*simscheme.Document, error)
+	SetImages(ctx *context.Context, req *SyncByImageRequest, rec *ProductRecord, limages image.LocalImages) error
 	MatchBarcode(ctx *context.Context, req *SyncByImageRequest, barcode string, productNodes models.Nodes) (*models.Product, error)
 }
 
@@ -149,10 +148,10 @@ func (l *logic) SyncByImages(ctx *context.Context, req *SyncByImageRequest, filt
 				); err != nil {
 					logrus.Warnf("product.logic.SyncByImages > product.repo.ReadByBarcode error: %v", err)
 					return
-				} else if err := l.SetImage(ctx, req, prd, imgs); err != nil {
+				} else if err := l.SetImages(ctx, req, prd, imgs); err != nil {
 					logrus.Warnf("product.logic.SyncByImages > product.SetImage error: %v", err)
 					return
-				} else if err := l.repo.Update(ctx,
+				} else if err := l.repo.UpdateImages(ctx,
 					l.conn.DB.WithContext(ctx.Request().Context()),
 					prd.LocalProduct,
 					nil); err != nil {
@@ -173,18 +172,19 @@ func (l *logic) SyncByImages(ctx *context.Context, req *SyncByImageRequest, filt
 	return prodRecDoc, nil
 }
 
-func (l *logic) SyncBySpreadSheets(ctx *context.Context, req *SyncBySpreadSheetsRequest, filters url.Values) (*simscheme.Document, error) {
+func (l *logic) SyncBySpreadSheets(ctx *context.Context) (*simscheme.Document, error) {
 	var (
 		prodRecDoc = simscheme.
 				GetSchema().
 				AddNewDocumentWithType(&ProductRecord{})
 
-		prodNodeIDs database.PIDs
-		batchSize   = 10
-		pool        = pond.New(batchSize, 0)
+		batchSize = 1
+		pool      = pond.New(batchSize, 0)
 	)
 
-	if req.ProductHeaderMap.Barcode == "" {
+	if req, err := context.GetRequestModel[*SyncBySpreadSheetsRequest](ctx); err != nil {
+		return prodRecDoc, err
+	} else if req.ProductHeaderMap.Barcode == "" {
 		return nil, nil
 	} else if csvFiles, err := excel.LoadExcels(ctx, req.Root, req.MaxDepth); err != nil {
 		return nil, err
@@ -203,6 +203,10 @@ func (l *logic) SyncBySpreadSheets(ctx *context.Context, req *SyncBySpreadSheets
 			)
 
 			pool.Submit(func() {
+				var (
+					topNodes models.Nodes
+				)
+
 				if req.ProductHeaderMap.CategoryAlias != "" {
 					if lcats, err := l.catRepo.Read(ctx,
 						l.conn.DB.WithContext(ctx.Request().Context()),
@@ -213,26 +217,23 @@ func (l *logic) SyncBySpreadSheets(ctx *context.Context, req *SyncBySpreadSheets
 						return
 					} else if len(lcats) == 1 {
 						prodRec.LocalCategory = lcats[0]
-						for _, n := range prodRec.LocalCategory.Category.Nodes {
-							prodNodeIDs = append(prodNodeIDs, n.ID)
-						}
+						topNodes = append(topNodes, prodRec.LocalCategory.Category.Nodes...)
 					}
 				}
 
 				if prodRec, err = l.repo.ReadByBarcode(ctx,
 					l.conn.DB.WithContext(ctx.Request().Context()),
 					prodRec,
-					filters,
+					ctx.QueryParams(),
 				); err != nil {
 					return
-				} else if len(prodNodeIDs) == 0 {
-					// break
-				} else if prodNodes, err := l.client.AddToNodes(ctx, prodRec.LocalProduct.Product, prodNodeIDs); err != nil {
+				} else if err := l.repo.UpdateNodes(ctx,
+					l.conn.DB.WithContext(ctx.Request().Context()),
+					prodRec,
+					topNodes,
+					ctx.QueryParams(),
+				); err != nil {
 					return
-				} else if len(prodNodes) == 0 {
-					// break
-				} else {
-					prodRec.LocalProduct.Product = prodNodes[0].Product
 				}
 			})
 
@@ -247,7 +248,7 @@ func (l *logic) SyncBySpreadSheets(ctx *context.Context, req *SyncBySpreadSheets
 	}
 }
 
-func (l *logic) SetImage(_ *context.Context, req *SyncByImageRequest, rec *ProductRecord, limages image.LocalImages) error {
+func (l *logic) SetImages(_ *context.Context, req *SyncByImageRequest, rec *ProductRecord, limages image.LocalImages) error {
 	lprod := rec.LocalProduct
 	rprod := lprod.Product
 

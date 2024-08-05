@@ -36,6 +36,7 @@ type SyncByImageRequest struct {
 type SyncBySpreadSheetsRequest struct {
 	ScanRequest
 	SpreadSheetRequest
+	ReplaceNodes bool `json:"replace_nodes,omitempty" query:"replace_nodes"`
 }
 type SyncBySpreadSheetsResponse struct {
 	templates.ResponseTemplate

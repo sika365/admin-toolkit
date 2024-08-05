@@ -24,6 +24,8 @@ type Repo interface {
 	Read(ctx *context.Context, db *gorm.DB, filters url.Values) (MapProducts, error)
 	ReadByBarcode(ctx *context.Context, db *gorm.DB, rec *ProductRecord, filters url.Values) (*ProductRecord, error)
 	ReadImagesWithoutProduct(ctx *context.Context, db *gorm.DB, filters url.Values) (mimages image.MapImages, err error)
+	UpdateImages(ctx *context.Context, db *gorm.DB, product *LocalProduct, filters url.Values) error
+	UpdateNodes(ctx *context.Context, db *gorm.DB, prdRec *ProductRecord, topNodes models.Nodes, filters url.Values) error
 	Update(ctx *context.Context, db *gorm.DB, product *LocalProduct, filters url.Values) error
 	Delete(ctx *context.Context, db *gorm.DB, id simutils.PID, filters url.Values) error
 }
@@ -84,7 +86,7 @@ func (i *repo) ReadByBarcode(ctx *context.Context, db *gorm.DB, rec *ProductReco
 		Preload("LocalCategory.Cover.File").
 		Preload("LocalCategory.Category").
 		Preload("LocalCategory.Category.Nodes").
-		Preload("LocalCategory.Nodes").
+		// Preload("LocalCategory.Nodes").
 		Where("barcode = ?", rec.Barcode).
 		Take(&stored).Error; errors.Is(err, gorm.ErrRecordNotFound) {
 		// register from remote
@@ -130,13 +132,50 @@ func (i *repo) ReadImagesWithoutProduct(ctx *context.Context, db *gorm.DB, filte
 	}
 }
 
-// Update implements Repo.
-func (i *repo) Update(ctx *context.Context, db *gorm.DB, lprod *LocalProduct, filters url.Values) error {
+func (i *repo) UpdateImages(ctx *context.Context, db *gorm.DB, lprod *LocalProduct, filters url.Values) error {
 	if lprod.Product == nil {
 		logrus.Warnf("local product id %s remote product not found", lprod.ID)
 		return nil
 	} else if !lprod.Product.CoverID.IsValid() {
 		logrus.Warnf("local product id %s cover not found", lprod.ID)
+		return nil
+	} else if err := i.Update(ctx, db, lprod, filters); err != nil {
+		return err
+	} else if err := db.
+		Model(lprod).
+		Association("Gallery").
+		Replace(lprod.Gallery); err != nil {
+		return err
+	} else {
+		return nil
+	}
+}
+
+func (i *repo) UpdateNodes(ctx *context.Context, db *gorm.DB, prdRec *ProductRecord, topNodes models.Nodes, filters url.Values) error {
+	if req, err := context.GetRequestModel[*SyncBySpreadSheetsRequest](ctx); err != nil {
+		return err
+	} else if prdRec == nil {
+		return fmt.Errorf("product record is nil")
+	} else if lprod := prdRec.LocalProduct; lprod == nil || prdRec.LocalProduct.Product == nil {
+		logrus.Warnf("local product id %s remote product not found", prdRec.Barcode)
+		return nil
+	} else if len(topNodes) == 0 {
+		logrus.Warnf("no top nodes found for %s", prdRec.Barcode)
+		return nil
+	} else if err := lprod.AddTopNodes(topNodes, req.ReplaceNodes); err != nil {
+		logrus.Warnf("add top nodes error for %s => %v", prdRec.Barcode, err)
+		return nil
+	} else if err := i.Update(ctx, db, lprod, filters); err != nil {
+		return err
+	} else {
+		return nil
+	}
+}
+
+// Update implements Repo.
+func (i *repo) Update(ctx *context.Context, db *gorm.DB, lprod *LocalProduct, filters url.Values) error {
+	if lprod.Product == nil {
+		logrus.Warnf("local product id %s remote product not found", lprod.ID)
 		return nil
 	} else if rprod, err := i.client.PutProduct(ctx, lprod.Product); err != nil {
 		return err
@@ -150,13 +189,15 @@ func (i *repo) Update(ctx *context.Context, db *gorm.DB, lprod *LocalProduct, fi
 		return err
 	} else if err := db.
 		Model(lprod).
-		Association("Gallery").
-		Replace(lprod.Gallery); err != nil {
-		return err
-	} else if err := db.
-		Model(lprod).
+		// Session(&gorm.Session{FullSaveAssociations: true}).
 		Association("Product").
 		Replace(lprod.Product); err != nil {
+		return err
+	} else if err := db.Unscoped().
+		Model(lprod.Product).
+		// Session(&gorm.Session{FullSaveAssociations: true}).
+		Association("Nodes").
+		Unscoped().Replace(lprod.Product.Nodes); err != nil {
 		return err
 	} else {
 		logrus.Infof("%s Updated", lprod.Product.LocalProduct.Barcodes)

@@ -68,15 +68,10 @@ func (r *rest) SyncByImages(ectx echo.Context) error {
 	}
 }
 
-func (r *rest) SyncBySpreadSheets(ectx echo.Context) error {
-	var req SyncBySpreadSheetsRequest
-	if ctx, ok := ectx.(*context.Context); !ok {
-		return nil
-	} else if err := ctx.Bind(&req); err != nil {
+func (r *rest) SyncBySpreadSheets(ctx echo.Context) error {
+	if ctx, err := context.Binder(ctx, &SyncBySpreadSheetsRequest{}); err != nil {
 		return err
-	} else if filters := ctx.QueryParams(); false {
-		return nil
-	} else if products, err := r.logic.SyncBySpreadSheets(ctx, &req, filters); err != nil {
+	} else if products, err := r.logic.SyncBySpreadSheets(ctx); err != nil {
 		return err
 	} else {
 		return simutils.ReplyTemplate(ctx, http.StatusOK, nil,

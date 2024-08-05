@@ -1,0 +1,10 @@
+-- database: ../../../data.db
+
+PRAGMA foreign_keys = OFF;
+
+UPDATE product_records SET category_alias=NULL;
+
+DELETE FROM local_categories;
+
+DELETE FROM categories;
+

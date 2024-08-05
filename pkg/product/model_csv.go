@@ -28,3 +28,7 @@ func (pr *ProductRecord) BeforeCreate(tx *gorm.DB) error {
 	}
 	return nil
 }
+
+func (pr *ProductRecord) AddTopNodes(topNodes models.Nodes, replace bool) error {
+	return pr.LocalProduct.AddTopNodes(topNodes, replace)
+}

@@ -68,3 +68,56 @@ func (p *LocalProduct) Key() string {
 func (p *LocalProduct) ToProduct() *models.Product {
 	return ToProduct(p)
 }
+
+func (p *LocalProduct) RemoveNodes() error {
+	if rprod := p.Product; rprod == nil {
+		return ErrRemoteLocalProductNotFound
+	} else if rlprod := rprod.LocalProduct; rlprod == nil {
+		return ErrRemoteLocalProductNotFound
+	} else {
+		rlprod.Nodes = models.Nodes{}
+		return nil
+	}
+}
+
+func (p *LocalProduct) AddTopNodes(topNodes models.Nodes, replace bool) error {
+	if replace {
+		if err := p.RemoveNodes(); err != nil {
+			return err
+		}
+	}
+
+	if rprod := p.Product; rprod == nil {
+		return ErrRemoteLocalProductNotFound
+	} else if rlprod := rprod.LocalProduct; rlprod == nil {
+		return ErrRemoteLocalProductNotFound
+	} else if len(rlprod.Nodes) == 0 {
+		for _, tnode := range topNodes {
+			rlprod.Nodes = append(rlprod.Nodes, &models.Node{
+				StoreID:   tnode.StoreID,
+				ParentID:  &tnode.ID,
+				OwnerID:   rlprod.ID,
+				OwnerType: "product",
+			})
+		}
+	} else {
+		for _, tnode := range topNodes {
+			exists := false
+			for _, rnode := range rlprod.Nodes {
+				if rnode.ParentID != nil && database.IsValid(rnode.ParentID) && tnode.ID == *rnode.ParentID {
+					exists = true
+					break
+				}
+			}
+			if !exists {
+				rlprod.Nodes = append(rlprod.Nodes, &models.Node{
+					StoreID:   tnode.StoreID,
+					ParentID:  &tnode.ID,
+					OwnerID:   rlprod.ID,
+					OwnerType: "product",
+				})
+			}
+		}
+	}
+	return nil
+}

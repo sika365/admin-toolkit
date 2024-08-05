@@ -24,9 +24,10 @@ POST http://localhost:8080/api/v1/products/sync/spreadsheets?order_by=newest&che
 content-type: application/json
 
 {
-  "root": "./csv/available",
+  "root": "/mnt/inputs/bookmall-2024/enabled",
   "max_depth": 1,
   "content_types": ".+",
+  "replace_nodes": true,
   "product_header_map": {
     "title": "نام",
     "barcode": "بارکد",

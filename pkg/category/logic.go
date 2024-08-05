@@ -113,7 +113,10 @@ func (l *logic) Sync(ctx *context.Context, req *SyncRequest, filters url.Values)
 			catRec := &CategoryRecord{
 				Title: rec[header[req.CategoryHeaderMap.Title]],
 			}
-			catRecordDoc.AddNode(catRec)
+
+			if !catRecordDoc.LabelExists(*catRecordDoc.BuildNodeLabel(catRec)) {
+				catRecordDoc.AddNode(catRec)
+			}
 		},
 	); err != nil {
 		return catRecordDoc, err
