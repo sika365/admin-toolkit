@@ -9,6 +9,7 @@ import (
 	"gitlab.sikapp.ir/sikatech/eshop/eshop-sdk-go-v1/database"
 	"gitlab.sikapp.ir/sikatech/eshop/eshop-sdk-go-v1/models"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 
 	simutils "github.com/alifakhimi/simple-utils-go"
 	"github.com/sika365/admin-tools/context"
@@ -88,7 +89,9 @@ func (i *repo) ReadByBarcode(ctx *context.Context, db *gorm.DB, rec *ProductReco
 		Preload("LocalCategory.Category.Nodes").
 		// Preload("LocalCategory.Nodes").
 		Where("barcode = ?", rec.Barcode).
-		Take(&stored).Error; errors.Is(err, gorm.ErrRecordNotFound) {
+		Take(&stored).Error; errors.Is(err, gorm.ErrRecordNotFound) ||
+		stored.LocalProduct == nil ||
+		stored.LocalProduct.Product == nil {
 		// register from remote
 		if product, err := i.client.GetProductbyBarcode(ctx, rec.Barcode, filters); err != nil {
 			return nil, err
@@ -112,10 +115,17 @@ func (i *repo) ReadImagesWithoutProduct(ctx *context.Context, db *gorm.DB, filte
 		BuildGormQuery(ctx, db, filters).
 		InnerJoins("File").
 		InnerJoins("Image").
-		Joins("LEFT JOIN local_products ON local_products.cover_id = local_images.id AND local_products.deleted_at IS NULL").
-		Joins("LEFT JOIN product_images ON local_images.id = product_images.local_image_id AND product_images.deleted_at IS NULL").
-		Where("local_products.cover_id IS NULL").
-		Where("product_images.local_product_id IS NULL").
+		Where("local_images.image_id not in (?)",
+			db.Table("products").Select("products.cover_id").
+				Where("products.cover_id=local_images.image_id"),
+		).
+		// Joins("LEFT JOIN products ON products.cover_id = local_images.image_id AND products.deleted_at IS NULL").
+		// Where("products.cover_id IS NULL").
+		// Joins("LEFT JOIN images ON local_images.image_id = images.id AND images.deleted_at IS NULL").
+		// Joins("LEFT JOIN products ON products.cover_id = images.id AND products.deleted_at IS NULL").
+		// Joins("LEFT JOIN local_products ON local_products.cover_id = local_images.id AND local_products.deleted_at IS NULL").
+		// Joins("LEFT JOIN product_images ON local_images.id = product_images.local_image_id AND product_images.deleted_at IS NULL").
+		// Where("product_images.local_product_id IS NULL").
 		// Where("images.title REGEXP '^[0-9]+$'").
 		Find(&images).Error; err != nil {
 		return nil, err
@@ -173,25 +183,26 @@ func (i *repo) UpdateNodes(ctx *context.Context, db *gorm.DB, prdRec *ProductRec
 }
 
 // Update implements Repo.
-func (i *repo) Update(ctx *context.Context, db *gorm.DB, lprod *LocalProduct, filters url.Values) error {
+func (i *repo) Update(ctx *context.Context, db *gorm.DB, lprod *LocalProduct, filters url.Values) (err error) {
 	if lprod.Product == nil {
 		logrus.Warnf("local product id %s remote product not found", lprod.ID)
 		return nil
-	} else if rprod, err := i.client.PutProduct(ctx, lprod.Product); err != nil {
+	} else if lprod.Product, err = i.client.PutProduct(ctx, lprod.Product); err != nil {
 		return err
-	} else if lprod.Product = rprod; false {
-		return nil
 	} else if err := db.
 		Model(&LocalProduct{
 			CommonTableFields: models.CommonTableFields{Model: database.Model{ID: lprod.ID}},
 		}).
 		Updates(lprod).Error; err != nil {
 		return err
-	} else if err := db.
-		Model(lprod).
-		// Session(&gorm.Session{FullSaveAssociations: true}).
-		Association("Product").
-		Replace(lprod.Product); err != nil {
+	} else if err := db.Unscoped().
+		// Model(lprod).
+		Clauses(clause.OnConflict{
+			UpdateAll: true,
+		}).
+		// Association("Product").
+		Omit(clause.Associations).
+		Save(lprod.Product).Error; err != nil {
 		return err
 	} else if err := db.Unscoped().
 		Model(lprod.Product).

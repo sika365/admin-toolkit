@@ -81,6 +81,8 @@ func (p *LocalProduct) RemoveNodes() error {
 }
 
 func (p *LocalProduct) AddTopNodes(topNodes models.Nodes, replace bool) error {
+	err := ErrProductNoChange
+
 	if replace {
 		if err := p.RemoveNodes(); err != nil {
 			return err
@@ -116,8 +118,9 @@ func (p *LocalProduct) AddTopNodes(topNodes models.Nodes, replace bool) error {
 					OwnerID:   rlprod.ID,
 					OwnerType: "product",
 				})
+				err = nil
 			}
 		}
 	}
-	return nil
+	return err
 }

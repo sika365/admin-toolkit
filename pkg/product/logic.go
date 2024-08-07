@@ -249,18 +249,23 @@ func (l *logic) SyncBySpreadSheets(ctx *context.Context) (*simscheme.Document, e
 }
 
 func (l *logic) SetImages(_ *context.Context, req *SyncByImageRequest, rec *ProductRecord, limages image.LocalImages) error {
+	err := ErrProductNoChange
+
 	lprod := rec.LocalProduct
 	rprod := lprod.Product
 
-	if req.ReplaceGallery && rprod.LocalProduct != nil && len(rprod.LocalProduct.Images) > 0 {
+	if req.ReplaceGallery &&
+		rprod.LocalProduct != nil &&
+		len(rprod.LocalProduct.Images) > 0 {
 		clear(rprod.Images)
 		rprod.Images = nil
 	}
 
 	for _, limg := range limages {
 		// TODO if image is cover then set cover is true else add to gallery
-		if (!lprod.CoverID.IsValid() && lprod.Cover == nil) &&
-			(req.ReplaceCover || (!req.IgnoreCoverIfEmpty && !rprod.CoverID.IsValid())) {
+		if req.ReplaceCover ||
+			((!lprod.CoverID.IsValid() && lprod.Cover == nil) &&
+				(!req.IgnoreCoverIfEmpty && !rprod.CoverID.IsValid())) {
 			// product.Cover = &ProductImage{
 			// 	ImageID:   img.ID,
 			// 	Image:     img,
@@ -282,10 +287,13 @@ func (l *logic) SetImages(_ *context.Context, req *SyncByImageRequest, rec *Prod
 			})
 		} else {
 			logrus.Infof("no chanes %s", rprod.LocalProduct.Barcodes)
+			continue
 		}
+
+		err = nil
 	}
 
-	return nil
+	return err
 }
 
 func (l *logic) MatchBarcode(_ *context.Context, _ *SyncByImageRequest, barcode string, productNodes models.Nodes) (*models.Product, error) {
