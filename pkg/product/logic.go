@@ -102,7 +102,7 @@ func (l *logic) SyncByImages(ctx *context.Context, req *SyncByImageRequest, filt
 	var (
 		err              error
 		offset           = 0
-		limit            = 100
+		limit            = 1000
 		batchSize        = 10
 		mimages          image.MapImages
 		mapBarcodeImages = make(map[string]image.LocalImages)

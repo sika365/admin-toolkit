@@ -119,6 +119,7 @@ func (i *repo) ReadImagesWithoutProduct(ctx *context.Context, db *gorm.DB, filte
 			db.Table("products").Select("products.cover_id").
 				Where("products.cover_id=local_images.image_id"),
 		).
+		Order("local_images.id asc").
 		// Joins("LEFT JOIN products ON products.cover_id = local_images.image_id AND products.deleted_at IS NULL").
 		// Where("products.cover_id IS NULL").
 		// Joins("LEFT JOIN images ON local_images.image_id = images.id AND images.deleted_at IS NULL").
