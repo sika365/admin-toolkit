@@ -6,6 +6,7 @@ import (
 	simutils "github.com/alifakhimi/simple-utils-go"
 	"github.com/alifakhimi/simple-utils-go/simscheme"
 	"github.com/alitto/pond"
+	"github.com/gosimple/slug"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cast"
 	"gitlab.sikapp.ir/sikatech/eshop/eshop-sdk-go-v1/models"
@@ -53,6 +54,70 @@ func (l *logic) Find(ctx *context.Context, req *SyncByImageRequest, filters url.
 		return nil, err
 	} else {
 		return products.GetValues(), nil
+	}
+}
+
+func (l *logic) UpdateNodes(ctx *context.Context, prodRec *ProductRecord) (err error) {
+	var (
+		topNodes models.Nodes
+	)
+
+	if prodRec.CategoryAlias != "" {
+		if lcats, err := l.catRepo.Read(ctx,
+			l.conn.DB.WithContext(ctx.Request().Context()),
+			url.Values{
+				"alias": []string{prodRec.CategoryAlias},
+			},
+		); err != nil {
+			return err
+		} else if len(lcats) == 1 {
+			prodRec.LocalCategory = lcats[0]
+			topNodes = append(topNodes, prodRec.LocalCategory.Category.Nodes...)
+		}
+	} else {
+		return nil
+	}
+
+	if prodRec, err = l.repo.ReadByBarcode(ctx,
+		l.conn.DB.WithContext(ctx.Request().Context()),
+		prodRec,
+		ctx.QueryParams(),
+	); err != nil {
+		return err
+	} else if err := l.repo.UpdateNodes(ctx,
+		l.conn.DB.WithContext(ctx.Request().Context()),
+		prodRec,
+		topNodes,
+		ctx.QueryParams(),
+	); err != nil {
+		return err
+	} else {
+		return nil
+	}
+}
+
+func (l *logic) UpdateImage(ctx *context.Context, req *SyncByImageRequest, imgs image.LocalImages, prodRec *ProductRecord) (err error) {
+	// Is the image cover or for gallery?
+	// Retrieve product by barcode
+	if prd, err := l.repo.ReadByBarcode(ctx,
+		l.conn.DB.WithContext(ctx.Request().Context()),
+		prodRec,
+		ctx.QueryParams(),
+	); err != nil {
+		logrus.Warnf("product.logic.SyncByImages > product.repo.ReadByBarcode error: %v", err)
+		return err
+	} else if err := l.SetImages(ctx, req, prd, imgs); err != nil {
+		logrus.Warnf("product.logic.SyncByImages > product.SetImage error: %v", err)
+		return err
+	} else if err := l.repo.UpdateImages(ctx,
+		l.conn.DB.WithContext(ctx.Request().Context()),
+		prd.LocalProduct,
+		nil); err != nil {
+		logrus.Warnf("product.logic.SyncByImages > product.repo.Update error: %v", err)
+		return err
+	} else {
+		logrus.Infof("%s Updated", prd.Barcode)
+		return nil
 	}
 }
 
@@ -134,38 +199,20 @@ func (l *logic) SyncByImages(ctx *context.Context, req *SyncByImageRequest, filt
 		pool := pond.New(batchSize, 0)
 
 		for barcode, imgs := range mapBarcodeImages {
-			pool.Submit(func() {
-				var (
-					prodRec = &ProductRecord{Barcode: barcode}
-				)
+			var (
+				prodRec = &ProductRecord{Barcode: barcode}
+			)
 
-				// Is the image cover or for gallery?
-				// Retrieve product by barcode
-				if prd, err := l.repo.ReadByBarcode(ctx,
-					l.conn.DB.WithContext(ctx.Request().Context()),
-					prodRec,
-					filters,
-				); err != nil {
-					logrus.Warnf("product.logic.SyncByImages > product.repo.ReadByBarcode error: %v", err)
+			pool.Submit(func() {
+				if err := l.UpdateImage(ctx, req, imgs, prodRec); err != nil {
 					return
-				} else if err := l.SetImages(ctx, req, prd, imgs); err != nil {
-					logrus.Warnf("product.logic.SyncByImages > product.SetImage error: %v", err)
-					return
-				} else if err := l.repo.UpdateImages(ctx,
-					l.conn.DB.WithContext(ctx.Request().Context()),
-					prd.LocalProduct,
-					nil); err != nil {
-					logrus.Warnf("product.logic.SyncByImages > product.repo.Update error: %v", err)
-					return
-				} else {
-					logrus.Infof("%s Updated", prd.Barcode)
-					prodRecDoc.AddNode(prodRec)
 				}
 			})
+
+			prodRecDoc.AddNode(prodRec)
 		}
 
 		pool.StopAndWait()
-
 		offset += limit
 	}
 
@@ -194,45 +241,18 @@ func (l *logic) SyncBySpreadSheets(ctx *context.Context) (*simscheme.Document, e
 		req.Offset,
 		func(header map[string]int, rec []string) {
 			var (
-				err     error
 				prodRec = &ProductRecord{
-					Barcode:       rec[header[req.ProductHeaderMap.Barcode]],
-					Title:         rec[header[req.ProductHeaderMap.Title]],
-					CategoryAlias: rec[header[req.ProductHeaderMap.CategoryAlias]],
+					Barcode: rec[header[req.ProductHeaderMap.Barcode]],
+					Title:   rec[header[req.ProductHeaderMap.Title]],
 				}
 			)
 
+			if req.ProductHeaderMap.CategoryAlias != "" {
+				prodRec.CategoryAlias = slug.Make(rec[header[req.ProductHeaderMap.CategoryAlias]])
+			}
+
 			pool.Submit(func() {
-				var (
-					topNodes models.Nodes
-				)
-
-				if req.ProductHeaderMap.CategoryAlias != "" {
-					if lcats, err := l.catRepo.Read(ctx,
-						l.conn.DB.WithContext(ctx.Request().Context()),
-						url.Values{
-							"alias": []string{prodRec.CategoryAlias},
-						},
-					); err != nil {
-						return
-					} else if len(lcats) == 1 {
-						prodRec.LocalCategory = lcats[0]
-						topNodes = append(topNodes, prodRec.LocalCategory.Category.Nodes...)
-					}
-				}
-
-				if prodRec, err = l.repo.ReadByBarcode(ctx,
-					l.conn.DB.WithContext(ctx.Request().Context()),
-					prodRec,
-					ctx.QueryParams(),
-				); err != nil {
-					return
-				} else if err := l.repo.UpdateNodes(ctx,
-					l.conn.DB.WithContext(ctx.Request().Context()),
-					prodRec,
-					topNodes,
-					ctx.QueryParams(),
-				); err != nil {
+				if err := l.UpdateNodes(ctx, prodRec); err != nil {
 					return
 				}
 			})
@@ -241,9 +261,8 @@ func (l *logic) SyncBySpreadSheets(ctx *context.Context) (*simscheme.Document, e
 		},
 	); err != nil {
 		return nil, err
-	} else if pool.StopAndWait(); false {
-		return prodRecDoc, nil
 	} else {
+		pool.StopAndWait()
 		return prodRecDoc, nil
 	}
 }

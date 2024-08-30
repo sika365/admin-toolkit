@@ -54,11 +54,12 @@ func (l *logic) Store(ctx *context.Context, req *SyncRequest, doc *simscheme.Doc
 				rec = node.Data.(*CategoryRecord)
 			)
 
-			rcategory, err := l.client.GetCategoryByAlias(ctx, rec.Title)
+			rcategory, err := l.client.GetCategoryByAlias(ctx, rec.Slug)
 			if errors.Is(err, models.ErrNotFound) {
 				if rcategory, err = l.client.StoreCategory(ctx, &models.Category{
 					Title: rec.Title,
-					Alias: rec.Title,
+					Slug:  rec.Slug.ToString(),
+					Alias: rec.Slug.ToString(),
 				}, uncategorizedNode); err != nil {
 					return err
 				}
@@ -68,8 +69,8 @@ func (l *logic) Store(ctx *context.Context, req *SyncRequest, doc *simscheme.Doc
 
 			rec.LocalCategory = &LocalCategory{
 				Title:    rec.Title,
-				Alias:    rec.Title,
-				Slug:     rec.Title,
+				Alias:    rec.Slug,
+				Slug:     rec.Slug,
 				Category: rcategory,
 			}
 
@@ -84,7 +85,7 @@ func (l *logic) Store(ctx *context.Context, req *SyncRequest, doc *simscheme.Doc
 			if err := l.repo.Create(
 				ctx,
 				l.conn.DB.WithContext(ctx.Request().Context()),
-				rec,
+				CategoryRecords{rec},
 			); err != nil {
 				return err
 			}
@@ -101,7 +102,7 @@ func (l *logic) Sync(ctx *context.Context, req *SyncRequest, filters url.Values)
 			AddNewDocumentWithType(&CategoryRecord{})
 	)
 
-	if req.ScanRequest.CategoryHeaderMap.Title == "" {
+	if req.ScanRequest.CategoryHeaderMap.Slug == "" {
 		return nil, fmt.Errorf("key of title is not specified")
 	} else if csvFiles, err := excel.LoadExcels(ctx, req.Root, req.MaxDepth); err != nil {
 		return nil, err
@@ -112,6 +113,7 @@ func (l *logic) Sync(ctx *context.Context, req *SyncRequest, filters url.Values)
 		func(header map[string]int, rec []string) {
 			catRec := &CategoryRecord{
 				Title: rec[header[req.CategoryHeaderMap.Title]],
+				Slug:  simutils.MakeSlug(rec[header[req.CategoryHeaderMap.Slug]]),
 			}
 
 			if !catRecordDoc.LabelExists(*catRecordDoc.BuildNodeLabel(catRec)) {

@@ -11,7 +11,8 @@ import (
 )
 
 type Repo interface {
-	Create(ctx *context.Context, db *gorm.DB, value any) error
+	Create(ctx *context.Context, db *gorm.DB, catRecs CategoryRecords) error
+	ReadCategoryRecords(ctx *context.Context, db *gorm.DB, filters url.Values) (categories CategoryRecords, err error)
 	Read(ctx *context.Context, db *gorm.DB, filters url.Values) (LocalCategories, error)
 	Update(ctx *context.Context, db *gorm.DB, category *LocalCategory, filters url.Values) error
 	Delete(ctx *context.Context, db *gorm.DB, id database.PID, filters url.Values) error
@@ -26,12 +27,35 @@ func newRepo() (Repo, error) {
 	return r, nil
 }
 
-// Create ...
-func (i *repo) Create(ctx *context.Context, db *gorm.DB, value any) error {
-	if err := db.CreateInBatches(value, 100).Error; err != nil {
-		return err
+// Create creates category records in batches
+func (i *repo) Create(ctx *context.Context, db *gorm.DB, catRecs CategoryRecords) error {
+	for _, catRec := range catRecs {
+		if err := db.FirstOrCreate(catRec).Error; err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// Read reads categories with filters
+func (i *repo) ReadCategoryRecords(ctx *context.Context, db *gorm.DB, filters url.Values) (categories CategoryRecords, err error) {
+	var stored CategoryRecords
+	if err = utils.
+		BuildGormQuery(ctx, db, filters).
+		Preload("LocalCategory").
+		Preload("LocalCategory.Cover").
+		Preload("LocalCategory.Cover.Image").
+		Preload("LocalCategory.Cover.File").
+		Preload("LocalCategory.Nodes").
+		Preload("LocalCategory.Nodes.Parent").
+		Preload("LocalCategory.Nodes.SubNodes").
+		Preload("LocalCategory.Category").
+		Preload("LocalCategory.Category.Nodes").
+		Find(&stored).Error; err != nil {
+		return nil, err
 	} else {
-		return nil
+		return stored, nil
 	}
 }
 
@@ -40,11 +64,12 @@ func (i *repo) Read(ctx *context.Context, db *gorm.DB, filters url.Values) (Loca
 	var stored LocalCategories
 	if err := utils.
 		BuildGormQuery(ctx, db, filters).
+		Preload("Cover").
 		Preload("Cover.Image").
 		Preload("Cover.File").
+		Preload("Nodes").
 		Preload("Category").
 		Preload("Category.Nodes").
-		Preload("Nodes").
 		Find(&stored).Error; err != nil {
 		return nil, err
 	} else {

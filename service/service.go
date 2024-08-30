@@ -13,6 +13,7 @@ import (
 	"github.com/sika365/admin-tools/pkg/image"
 	"github.com/sika365/admin-tools/pkg/node"
 	"github.com/sika365/admin-tools/pkg/product"
+	"github.com/sika365/admin-tools/pkg/woocommerce"
 	"github.com/sika365/admin-tools/registrar"
 )
 
@@ -57,6 +58,7 @@ func (svc *Service) Init() error {
 		Add(category.New(h, db, client)).
 		Add(product.New(h, db, client)).
 		Add(node.New(h, db, client)).
+		Add(woocommerce.New(h, db, client)).
 		// Add more package
 		Init(); err != nil {
 		return err

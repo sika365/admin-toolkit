@@ -1,6 +1,7 @@
 package product
 
 import (
+	"gitlab.sikapp.ir/sikatech/eshop/eshop-sdk-go-v1/database/connection"
 	"gitlab.sikapp.ir/sikatech/eshop/eshop-sdk-go-v1/models"
 	"gitlab.sikapp.ir/sikatech/eshop/eshop-sdk-go-v1/utils/templates"
 
@@ -42,6 +43,17 @@ type SyncBySpreadSheetsResponse struct {
 	templates.ResponseTemplate
 	Data *simscheme.Document `json:"data,omitempty"`
 }
+
+type SyncByWoocommerceRequest struct {
+	ScanRequest
+	DatabaseConfig *connection.DBConfig `json:"database_config,omitempty"`
+	ReplaceNodes   bool                 `json:"replace_nodes,omitempty" query:"replace_nodes"`
+}
+type SyncByWoocommerceResponse struct {
+	templates.ResponseTemplate
+	Data *simscheme.Document `json:"data,omitempty"`
+}
+
 type SyncByImagesResponse struct {
 	templates.ResponseTemplate
 	Data *simscheme.Document `json:"data,omitempty"`

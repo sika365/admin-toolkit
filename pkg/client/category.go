@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/url"
 
+	simutils "github.com/alifakhimi/simple-utils-go"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cast"
 	"gitlab.sikapp.ir/sikatech/eshop/eshop-sdk-go-v1/database"
@@ -12,11 +13,11 @@ import (
 	"github.com/sika365/admin-tools/context"
 )
 
-func (c *Client) GetCategoryByAlias(ctx *context.Context, alias string) (category *models.Category, err error) {
+func (c *Client) GetCategoryByAlias(ctx *context.Context, alias simutils.Slug) (category *models.Category, err error) {
 	var categoryResp models.CategoriesResponse
 	if resp, err := c.R().
 		SetPathParams(map[string]string{
-			"alias": alias,
+			"alias": alias.ToString(),
 		}).
 		SetQueryParamsFromValues(url.Values{
 			"limit":    []string{cast.ToString(1)},

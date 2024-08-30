@@ -8,9 +8,14 @@ import (
 	"github.com/sika365/admin-tools/pkg/file"
 )
 
+type CategoryHeaderMap struct {
+	Slug  string `json:"slug,omitempty" gorm:"primaryKey"`
+	Title string `json:"title,omitempty" gorm:"primaryKey"`
+}
+
 type SpreadSheetRequest struct {
-	Offset            int            `json:"offset,omitempty"`
-	CategoryHeaderMap CategoryRecord `json:"category_header_map,omitempty"`
+	Offset            int               `json:"offset,omitempty"`
+	CategoryHeaderMap CategoryHeaderMap `json:"category_header_map,omitempty"`
 }
 
 type ScanRequest struct {

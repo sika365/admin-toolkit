@@ -14,13 +14,14 @@ type LocalNodes []*LocalNode
 type LocalNode struct {
 	simutils.CommonTableFields
 	simutils.PolymorphicFields
+	Alias         simutils.Slug `json:"alias,omitempty" gorm:"index:,unique" sim:"primaryKey;"`
 	Name          string        `json:"name,omitempty"`
-	Alias         string        `json:"alias,omitempty" gorm:"index"`
-	Slug          string        `json:"slug,omitempty" gorm:"index"`
-	ParentID      *simutils.PID `json:"parent_id,omitempty" gorm:"default:null;index"`
+	Slug          simutils.Slug `json:"slug,omitempty" gorm:"index"`
+	ParentID      *simutils.PID `json:"parent_id,omitempty" gorm:"default:NULL"`
+	ParentAlias   simutils.Slug `json:"parent_alias,omitempty" gorm:"default:NULL;index;constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
 	Priority      int           `json:"priority,omitempty"`
-	Parent        *LocalNode    `json:"parent,omitempty"`
-	SubNodes      LocalNodes    `json:"sub_nodes,omitempty" gorm:"foreignkey:ParentID"`
+	Parent        *LocalNode    `json:"parent,omitempty" gorm:"references:ParentAlias;foreignKey:Alias;"`
+	SubNodes      LocalNodes    `json:"sub_nodes,omitempty" gorm:"references:Alias;foreignkey:ParentAlias"`
 	SubNodesCount int           `json:"sub_nodes_count" gorm:"-:all"`
 }
 

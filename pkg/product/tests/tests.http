@@ -24,7 +24,7 @@ POST http://localhost:8080/api/v1/products/sync/spreadsheets?order_by=newest&che
 content-type: application/json
 
 {
-  "root": "/mnt/inputs/bookmall-2024/enabled",
+  "root": "/home/ali/github.com/sika365/admin-toolkit-dev/import/bookmall-2024/enabled",
   "max_depth": 1,
   "content_types": ".+",
   "replace_nodes": true,

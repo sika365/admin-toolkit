@@ -1,9 +1,11 @@
-package category
+package woocommerce
 
 import (
+	"gitlab.sikapp.ir/sikatech/eshop/eshop-sdk-go-v1/models"
+
+	"github.com/sika365/admin-tools/pkg/category"
 	"github.com/sika365/admin-tools/pkg/image"
 	"github.com/sika365/admin-tools/pkg/node"
-	"gitlab.sikapp.ir/sikatech/eshop/eshop-sdk-go-v1/models"
 )
 
 func (i *Package) Migrator() error {
@@ -12,7 +14,7 @@ func (i *Package) Migrator() error {
 		&models.Category{},
 		&image.LocalImage{},
 		&node.LocalNode{},
-		&LocalCategory{},
-		&CategoryRecord{},
+		&category.LocalCategory{},
+		&category.CategoryRecord{},
 	)
 }

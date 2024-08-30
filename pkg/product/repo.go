@@ -23,6 +23,7 @@ type Repo interface {
 	Create(ctx *context.Context, db *gorm.DB, products LocalProducts) error
 	CreateRecord(ctx *context.Context, db *gorm.DB, prodRecs ProductRecords) error
 	Read(ctx *context.Context, db *gorm.DB, filters url.Values) (MapProducts, error)
+	ReadProductRecords(ctx *context.Context, db *gorm.DB, filters url.Values) (products ProductRecords, err error)
 	ReadByBarcode(ctx *context.Context, db *gorm.DB, rec *ProductRecord, filters url.Values) (*ProductRecord, error)
 	ReadImagesWithoutProduct(ctx *context.Context, db *gorm.DB, filters url.Values) (mimages image.MapImages, err error)
 	UpdateImages(ctx *context.Context, db *gorm.DB, product *LocalProduct, filters url.Values) error
@@ -55,10 +56,24 @@ func (i *repo) Create(ctx *context.Context, db *gorm.DB, products LocalProducts)
 
 // Create stores product records
 func (i *repo) CreateRecord(ctx *context.Context, db *gorm.DB, prodRecs ProductRecords) error {
-	if err := db.CreateInBatches(prodRecs, 100).Error; err != nil {
+	if len(prodRecs) == 0 {
+		return nil
+	} else if err := db.CreateInBatches(prodRecs, 100).Error; err != nil {
 		return err
 	} else {
 		return nil
+	}
+}
+
+// Read reads products with filters
+func (i *repo) ReadProductRecords(ctx *context.Context, db *gorm.DB, filters url.Values) (products ProductRecords, err error) {
+	var stored ProductRecords
+	if err = utils.
+		BuildGormQuery(ctx, db, filters).
+		Find(&stored).Error; err != nil {
+		return nil, err
+	} else {
+		return stored, nil
 	}
 }
 

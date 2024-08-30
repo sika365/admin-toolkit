@@ -3,6 +3,7 @@ package client
 import (
 	"testing"
 
+	simutils "github.com/alifakhimi/simple-utils-go"
 	"github.com/alifakhimi/simple-utils-go/simrest"
 	"github.com/sika365/admin-tools/context"
 	"github.com/sika365/admin-tools/test"
@@ -17,7 +18,7 @@ func TestClient_GetCategoryByAlias(t *testing.T) {
 	}
 	type args struct {
 		ctx   *context.Context
-		alias string
+		alias simutils.Slug
 	}
 	tests := []struct {
 		name    string
