@@ -1,13 +1,16 @@
 package woocommerce
 
 import (
+	"encoding/json"
 	"time"
 
 	simutils "github.com/alifakhimi/simple-utils-go"
 	"github.com/spf13/cast"
+	"gitlab.sikapp.ir/sikatech/eshop/eshop-sdk-go-v1/database"
 	"gitlab.sikapp.ir/sikatech/eshop/eshop-sdk-go-v1/models"
 
 	"github.com/sika365/admin-tools/pkg/category"
+	"github.com/sika365/admin-tools/pkg/image"
 	"github.com/sika365/admin-tools/pkg/node"
 	"github.com/sika365/admin-tools/pkg/product"
 )
@@ -93,14 +96,14 @@ func (WpTerm) TableName() string {
 	return "wp_terms"
 }
 
-func (p *WpPost) GetBarcode() (barcode string) {
+func (p *WpPost) GetBarcodes() (barcodes models.Barcodes) {
 	for _, m := range p.Meta {
 		if m.MetaKey == "_sku" {
-			return m.MetaValue
+			barcodes = append(barcodes, &models.Barcode{Barcode: m.MetaValue})
 		}
 	}
 
-	return ""
+	return barcodes
 }
 
 func (p *WpPost) GetCategoryRecords() category.CategoryRecords {
@@ -135,25 +138,193 @@ func (p *WpPost) GetCategoryRecords() category.CategoryRecords {
 	return catRecs
 }
 
-func (p *WpPost) ToProductRecord() *product.ProductRecord {
+func (p *WpPost) IsProductGroup() bool {
+	for _, subpost := range p.Posts {
+		switch subpost.PostType {
+		case models.PRODUCT_VARIATION_TYPE:
+			return true
+		}
+	}
+	return false
+}
+
+func (p *WpPost) ToProduct(
+	group *models.ProductGroup,
+	cover *models.Image,
+	gallery models.Imagables,
+	topNodes models.Nodes,
+) *models.Product {
 	var (
-		barcode         = p.GetBarcode()
-		categoryRecords = p.GetCategoryRecords()
+		barcodes       = p.GetBarcodes()
+		productGroupID database.NullPID
 	)
 
-	if len(categoryRecords) == 0 || barcode == "" {
+	if group != nil {
+		productGroupID, _ = group.ID.ToNullPID()
+	}
+
+	return &models.Product{
+		LocalProduct: &models.LocalProduct{
+			CommonTableFields: models.CommonTableFields{
+				Description: p.PostContent,
+				Active:      simutils.SetToNilIfZeroValue(true),
+			},
+			AppName:       p.PostTitle,
+			SameNameInPos: new(bool),
+			AllBarcodes:   barcodes.String(),
+			Barcodes:      barcodes,
+			Excerpt:       p.PostExcerpt,
+			// CoverID: cover.ID.ToNullPID(),
+			Cover:          cover,
+			Images:         gallery,
+			ProductGroupID: productGroupID,
+			Slug:           p.PostName,
+		},
+	}
+}
+
+func (p *WpPost) ToProductRecord(catAlias string, prd *models.Product) *product.ProductRecord {
+	var (
+		barcodes = p.GetBarcodes()
+	)
+
+	// Check `Meta`
+	// ...
+	// Iterate over sub-`Posts`
+	// 	PostStatus: [inherit, ]
+	// 	PostType: ["revision", "attachment", "product_variation"]
+	// 		Revision:
+	// 		Attachment:
+	// 			Guid: url
+	// 			Meta: [
+	// 				MetaKey: "_wp_attached_file"
+	// 				MetaKey: "_wp_attachment_metadata"
+	// 				MetaKey: "_wp_attachment_image_alt"
+	// 			]
+	// 		Variation
+
+	if len(barcodes) == 0 {
 		return nil
 	}
 
-	catRec := categoryRecords[0]
 	prdRec := &product.ProductRecord{
-		Barcode:       barcode,
-		Title:         p.PostTitle,
-		CategoryAlias: string(catRec.Slug),
-		LocalCategory: catRec.LocalCategory,
+		Barcode:      barcodes[0].Barcode,
+		Title:        p.PostTitle,
+		CategorySlug: catAlias,
+		LocalProduct: product.FromProduct(prd),
 	}
 
 	return prdRec
+}
+
+func (p *WpPost) ToLocalProductGroup(topNodes models.Nodes) *product.LocalProductGroup {
+	var (
+		cover, gallery = p.GetAttachments()
+	)
+
+	// Create product group
+	productGroup := &models.ProductGroup{
+		CommonTableFields: models.CommonTableFields{
+			Active:      simutils.SetToNilIfZeroValue(true),
+			Description: p.PostContent,
+			Meta: func() []byte {
+				m, _ := json.Marshal(p.Meta)
+				return m
+			}(),
+			Error: nil,
+		},
+		Name:    p.PostTitle,
+		Slug:    p.PostName,
+		Excerpt: p.PostExcerpt,
+		Cover:   cover,
+		Images:  gallery,
+	}
+
+	// product_variation
+	for _, subpost := range p.Posts {
+		switch subpost.PostType {
+		case "product_variation":
+			productGroup.Products = append(
+				productGroup.Products,
+				p.ToProduct(
+					productGroup,
+					cover,
+					gallery,
+					topNodes,
+				),
+			)
+		}
+	}
+
+	return &product.LocalProductGroup{
+		Slug:         p.PostName,
+		Cover:        image.FromImage(cover),
+		Gallery:      gallery,
+		ProductGroup: productGroup,
+	}
+}
+
+func (p *WpPost) GetAttachments() (cover *models.Image, gallery models.Imagables) {
+	var (
+		thumbnailId uint
+	)
+
+	for _, m := range p.Meta {
+		switch m.MetaKey {
+		case "_thumbnail_id":
+			thumbnailId = cast.ToUint(m.MetaValue)
+		}
+		if thumbnailId > 0 {
+			break
+		}
+	}
+
+	// attachment
+	for _, subpost := range p.Posts {
+		switch subpost.PostType {
+		case "attachment":
+			img := &models.Image{
+				Title: subpost.PostTitle,
+				URL:   subpost.Guid,
+				Description: func() string {
+					if subpost.PostContent != "" {
+						return subpost.PostContent
+					} else if subpost.PostExcerpt != "" {
+						return subpost.PostExcerpt
+					}
+					return ""
+				}(),
+				Alias: subpost.PostName,
+				Name:  subpost.PostTitle,
+			}
+
+			for _, m := range subpost.Meta {
+				switch m.MetaKey {
+				case "_wp_attached_file":
+				case "_wp_attachment_metadata":
+				case "_wp_attachment_image_alt":
+					img.Title = m.MetaValue
+				}
+			}
+
+			if thumbnailId == subpost.ID {
+				cover = img
+			} else {
+				gallery = append(gallery, &models.Imagable{
+					Image: img,
+				})
+			}
+		}
+	}
+
+	return
+}
+
+func (p *WpPost) SetLocalProduct(product *models.Product) *product.LocalProduct {
+	if database.IsValid(product.ID) {
+
+	}
+	return nil
 }
 
 func (tt *WpTermTaxonomy) ToCategoryRecord() *category.CategoryRecord {

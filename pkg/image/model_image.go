@@ -36,6 +36,13 @@ func (i *LocalImage) Hash() string {
 	}
 }
 
+func FromImage(m *models.Image) *LocalImage {
+	return &LocalImage{
+		ImageID: m.ID,
+		Image:   m,
+	}
+}
+
 func FromFiles(files file.MapFiles, titlePattern *regexp.Regexp) (LocalImages, MapImages) {
 	m := make(MapImages)
 	imgs := make(LocalImages, 0, len(files))

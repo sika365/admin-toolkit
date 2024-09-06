@@ -8,7 +8,7 @@ import (
 )
 
 type LocalProducts []*LocalProduct
-
+type LocalProductGroups []*LocalProductGroup
 type ProductImages = []*ProductImage
 
 type ProductImage struct {
@@ -20,10 +20,20 @@ type ProductImage struct {
 
 type Gallery = ProductImages
 
+type LocalProductGroup struct {
+	models.CommonTableFields
+	Slug           string               `json:"slug,omitempty" query:"slug" param:"slug" sim:"primaryKey;"`
+	CoverID        database.NullPID     `json:"cover_id,omitempty"`
+	Cover          *image.LocalImage    `json:"cover,omitempty"`
+	Gallery        models.Imagables     `json:"gallery" gorm:"polymorphic:Owner;"`
+	ProductGroupID database.PID         `json:"product_group_id,omitempty"`
+	ProductGroup   *models.ProductGroup `json:"product_group,omitempty"`
+}
+
 type LocalProduct struct {
 	models.CommonTableFields
-	CoverID   database.NullPID  `json:"cover_id,omitempty"`
 	ProductID database.PID      `json:"product_id,omitempty"`
+	CoverID   database.NullPID  `json:"cover_id,omitempty"`
 	Cover     *image.LocalImage `json:"cover,omitempty"`
 	Gallery   Gallery           `json:"gallery"`
 	Product   *models.Product   `json:"product,omitempty"`

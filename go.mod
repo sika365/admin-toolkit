@@ -5,18 +5,19 @@ go 1.22.3
 require (
 	github.com/alifakhimi/simple-service-go v0.0.0-20240719125813-1974a13ecc21
 	github.com/alifakhimi/simple-utils-go v0.0.8-0.20240829130728-9b19388156ad
-	github.com/alifakhimi/simple-utils-go/simrest v0.0.0-20240828185514-40ef23a4c723
-	github.com/alifakhimi/simple-utils-go/simscheme v0.0.0-20240819211352-d582c1d22385
+	github.com/alifakhimi/simple-utils-go/simrest v0.0.0-20240829131840-fb0cb9fcc16b
+	github.com/alifakhimi/simple-utils-go/simscheme v0.0.0-20240831155141-8f151ad65a1e
 	github.com/alitto/pond v1.9.1
 	github.com/dustin/go-humanize v1.0.1
 	github.com/gabriel-vasile/mimetype v1.4.4
 	github.com/go-resty/resty/v2 v2.14.0
+	github.com/gosimple/slug v1.14.0
 	github.com/labstack/echo/v4 v4.12.0
 	github.com/mattn/go-sqlite3 v1.14.22
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cast v1.7.0
 	github.com/xuri/excelize/v2 v2.8.1
-	gitlab.sikapp.ir/sikatech/eshop/eshop-sdk-go-v1 v1.12.0-dev.0.20240819154426-e5e48c61825f
+	gitlab.sikapp.ir/sikatech/eshop/eshop-sdk-go-v1 v1.12.10-0.20240903190811-8868f44a74cb
 	golang.org/x/exp v0.0.0-20240823005443-9b4947da3948
 	gorm.io/driver/sqlite v1.5.6
 	gorm.io/gorm v1.25.11
@@ -40,7 +41,6 @@ require (
 	github.com/golang-jwt/jwt v3.2.2+incompatible // indirect
 	github.com/golang-sql/civil v0.0.0-20220223132316-b832511892a9 // indirect
 	github.com/golang-sql/sqlexp v0.1.0 // indirect
-	github.com/gosimple/slug v1.14.0 // indirect
 	github.com/gosimple/unidecode v1.0.1 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect

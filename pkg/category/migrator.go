@@ -10,6 +10,7 @@ func (i *Package) Migrator() error {
 	return i.db.DB.AutoMigrate(
 		&models.Node{},
 		&models.Category{},
+		&models.Imagable{},
 		&image.LocalImage{},
 		&node.LocalNode{},
 		&LocalCategory{},

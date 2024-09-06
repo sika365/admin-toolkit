@@ -45,7 +45,7 @@ func (r *rest) Find(ectx echo.Context) error {
 func (r *rest) SyncByWoocommerce(ctx echo.Context) error {
 	if ctx, err := context.Binder(ctx, &SyncRequest{}); err != nil {
 		return err
-	} else if err := r.logic.Sync(ctx); err != nil {
+	} else if _, err := r.logic.Sync(ctx); err != nil {
 		return err
 	} else {
 		return simutils.ReplyTemplate(ctx, http.StatusOK, nil,

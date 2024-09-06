@@ -4,6 +4,7 @@ import (
 	"net/url"
 
 	"gitlab.sikapp.ir/sikatech/eshop/eshop-sdk-go-v1/database"
+	"gitlab.sikapp.ir/sikatech/eshop/eshop-sdk-go-v1/models"
 	"gorm.io/gorm"
 
 	"github.com/sika365/admin-tools/context"
@@ -14,6 +15,7 @@ type Repo interface {
 	Create(ctx *context.Context, db *gorm.DB, catRecs CategoryRecords) error
 	ReadCategoryRecords(ctx *context.Context, db *gorm.DB, filters url.Values) (categories CategoryRecords, err error)
 	Read(ctx *context.Context, db *gorm.DB, filters url.Values) (LocalCategories, error)
+	ReadCategory(ctx *context.Context, db *gorm.DB, filters url.Values) (categories models.Categories, err error)
 	Update(ctx *context.Context, db *gorm.DB, category *LocalCategory, filters url.Values) error
 	Delete(ctx *context.Context, db *gorm.DB, id database.PID, filters url.Values) error
 	Clear(ctx *context.Context, db *gorm.DB) error
@@ -68,12 +70,26 @@ func (i *repo) Read(ctx *context.Context, db *gorm.DB, filters url.Values) (Loca
 		Preload("Cover.Image").
 		Preload("Cover.File").
 		Preload("Nodes").
+		Preload("Nodes.Parent").
+		Preload("Nodes.SubNodes").
 		Preload("Category").
 		Preload("Category.Nodes").
 		Find(&stored).Error; err != nil {
 		return nil, err
 	} else {
 		return stored, nil
+	}
+}
+
+func (i *repo) ReadCategory(ctx *context.Context, db *gorm.DB, filters url.Values) (categories models.Categories, err error) {
+	if err := utils.
+		BuildGormQuery(ctx, db, filters).
+		Preload("Nodes").
+		Preload("Nodes.Parent").
+		Find(&categories).Error; err != nil {
+		return nil, err
+	} else {
+		return categories, nil
 	}
 }
 

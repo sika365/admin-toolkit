@@ -5,6 +5,7 @@ import (
 	"net/url"
 
 	simutils "github.com/alifakhimi/simple-utils-go"
+	"github.com/sirupsen/logrus"
 	"gitlab.sikapp.ir/sikatech/eshop/eshop-sdk-go-v1/models"
 
 	"github.com/sika365/admin-tools/context"
@@ -15,7 +16,7 @@ import (
 )
 
 type Logic interface {
-	Sync(ctx *context.Context) (err error)
+	Sync(ctx *context.Context) (prdRecs product.ProductRecords, err error)
 }
 
 type logic struct {
@@ -41,85 +42,154 @@ func newLogic(conn *simutils.DBConnection, client *client.Client, repo Repo, cat
 	return l, nil
 }
 
-func (l *logic) Sync(ctx *context.Context) (err error) {
+func (l *logic) Sync(ctx *context.Context) (prdRecs product.ProductRecords, err error) {
 	if req, err := context.GetRequestModel[*SyncRequest](ctx); err != nil {
-		return err
+		return nil, err
 	} else if dbconn := (&simutils.DBConnection{DBConfig: req.DatabaseConfig}); false {
-		return nil
+		return nil, nil
 	} else if err := simutils.Connect(dbconn); err != nil {
-		return err
+		return nil, err
 	} else if err := l.SyncCategory(ctx, req, dbconn); err != nil {
-		return err
-	} else if err := l.SyncProduct(ctx, req, dbconn); err != nil {
-		return err
+		return nil, err
+	} else if prdRecs, err := l.SyncProduct(ctx, req, dbconn); err != nil {
+		return nil, err
 	} else {
-		return nil
+		return prdRecs, nil
 	}
 }
 
-func (l *logic) SyncProduct(ctx *context.Context, req *SyncRequest, dbconn *simutils.DBConnection) (err error) {
+func (l *logic) SyncProduct(ctx *context.Context, req *SyncRequest, dbconn *simutils.DBConnection) (prdRecs product.ProductRecords, err error) {
 	// Read all products from woocommerce db
 	if posts, err := l.repo.ReadPosts(
 		ctx,
 		dbconn.DB.WithContext(ctx.Request().Context()),
 		url.Values{
-			"post_type":   []string{"product", "product_variation"},
+			"post_type":   []string{"product"},
 			"post_status": []string{"publish"},
-			"includes":    []string{"Meta", "Parent", "Posts", "TermTaxonomies.Term"},
+			"includes": []string{
+				"Meta", "Parent", "TermTaxonomies.Term", "Posts",
+				"Posts.Meta", "Posts.TermTaxonomies.Term", "Posts.Posts",
+				"Posts.Posts.Meta", "Posts.Posts.TermTaxonomies.Term", "Posts.Posts.Posts",
+			},
 		},
 	); err != nil {
-		return err
+		return nil, err
 	} else {
 		postDoc.AddNodes(posts)
+		prdRecs = make(product.ProductRecords, 0, len(posts))
 
-		prdRecs := make(product.ProductRecords, 0, len(posts))
 		for _, post := range posts {
 			var (
-				topNodes models.Nodes
-				prdRec   = post.ToProductRecord()
+				productGroup    *models.ProductGroup
+				prd             = &models.Product{}
+				topNodes        = models.Nodes{}
+				categoryRecords = post.GetCategoryRecords()
+				isProductGroup  = post.IsProductGroup()
 			)
 
-			if prdRec == nil {
-				continue
-			} else if prdRec.CategoryAlias != "" {
-				if lcats, err := l.catRepo.Read(ctx,
-					l.conn.DB.WithContext(ctx.Request().Context()),
-					url.Values{
-						"alias": []string{prdRec.CategoryAlias},
-					},
-				); err != nil {
-					return err
-				} else if len(lcats) == 1 {
-					prdRec.LocalCategory = lcats[0]
-					topNodes = append(topNodes, prdRec.LocalCategory.Category.Nodes...)
-				}
-
-				if prdRec, err := l.prodRepo.ReadByBarcode(ctx,
-					l.conn.DB.WithContext(ctx.Request().Context()),
-					prdRec,
-					ctx.QueryParams(),
-				); err != nil {
-					return err
-				} else if err := l.prodRepo.UpdateNodes(ctx,
-					l.conn.DB.WithContext(ctx.Request().Context()),
-					prdRec,
-					topNodes,
-					ctx.QueryParams(),
-				); err != nil {
-					return err
-				}
-			} else {
-				return nil
+			if topNodes, err = l.GetTopNodes(ctx, categoryRecords); err != nil {
+				return nil, err
 			}
 
-			prdRecs = append(prdRecs, prdRec)
-			lnodeRecDoc.AddNodes(prdRec.LocalCategory.Nodes)
+			if isProductGroup {
+				// Product with variations
+				reqLProductGroup := post.ToLocalProductGroup(topNodes)
+
+				if lproductGroup, err := l.prodLogic.FindOrCreateProductGroup(
+					ctx,
+					reqLProductGroup,
+				); err != nil {
+					return nil, err
+				} else if lproductGroup == nil {
+					return nil, nil
+				} else {
+					for _, prd := range reqLProductGroup.ProductGroup.Products {
+						prd.ProductGroupID, _ = lproductGroup.ID.ToNullPID()
+
+						if storedPrdRecs, err := l.SaveProduct(ctx, post, prd, categoryRecords); err != nil { // check cover and gallery
+							return nil, err
+						} else {
+							prdRecs = append(prdRecs, storedPrdRecs...)
+
+							for _, storedPrdRec := range storedPrdRecs {
+								lnodeRecDoc.AddNodes(storedPrdRec.LocalCategory.Nodes)
+							}
+						}
+					}
+				}
+			} else {
+				var (
+					cover, gallery = post.GetAttachments()
+				)
+
+				prd = post.ToProduct(
+					productGroup,
+					cover,
+					gallery,
+					topNodes,
+				)
+
+				if storedPrdRecs, err := l.SaveProduct(ctx, post, prd, categoryRecords); err != nil { // check cover and gallery
+					return nil, err
+				} else {
+					prdRecs = append(prdRecs, storedPrdRecs...)
+
+					for _, storedPrdRec := range storedPrdRecs {
+						lnodeRecDoc.AddNodes(storedPrdRec.LocalCategory.Nodes)
+					}
+				}
+			}
 		}
 
-		_ = prdRecs
+		return prdRecs, nil
+	}
+}
+
+func (l *logic) GetTopNodes(ctx *context.Context, catRecs category.CategoryRecords) (models.Nodes, error) {
+	var (
+		topNodes models.Nodes
+		slugs    []string
+	)
+
+	for _, catRec := range catRecs {
+		if catRec.Slug.IsValid() {
+			slugs = append(slugs, catRec.Slug.ToString())
+		}
 	}
 
-	return nil
+	if lcats, err := l.catRepo.Read(ctx,
+		l.conn.DB.WithContext(ctx.Request().Context()),
+		url.Values{
+			"slug": slugs,
+		},
+	); err != nil {
+		return nil, err
+	} else {
+		for _, lcat := range lcats {
+			topNodes = append(topNodes, lcat.Category.Nodes...)
+		}
+
+		return topNodes, nil
+	}
+}
+
+func (l *logic) SaveProduct(ctx *context.Context, post *WpPost, prd *models.Product, categoryRecords category.CategoryRecords) (prdRecs product.ProductRecords, err error) {
+	for _, catRec := range categoryRecords {
+		postPrdRec := post.ToProductRecord(string(catRec.Slug), prd)
+		if postPrdRec == nil {
+			// return nil, models.ErrNotFound
+			continue
+		}
+
+		if prdRec, err := l.prodLogic.Save(ctx, postPrdRec); err != nil {
+			logrus.Errorf("register product failed %v", err)
+			return nil, err
+		} else {
+			prdRecs = append(prdRecs, prdRec)
+		}
+	}
+
+	return prdRecs, nil
 }
 
 func (l *logic) SyncCategory(ctx *context.Context, req *SyncRequest, dbconn *simutils.DBConnection) (err error) {

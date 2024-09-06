@@ -20,9 +20,12 @@ import (
 )
 
 type Repo interface {
+	Save(ctx *context.Context, db *gorm.DB, products LocalProducts) error
 	Create(ctx *context.Context, db *gorm.DB, products LocalProducts) error
+	CreateProductGroup(ctx *context.Context, db *gorm.DB, prdgrp *LocalProductGroup) error
 	CreateRecord(ctx *context.Context, db *gorm.DB, prodRecs ProductRecords) error
 	Read(ctx *context.Context, db *gorm.DB, filters url.Values) (MapProducts, error)
+	FirstOrCreateLocalProuctGroup(ctx *context.Context, db *gorm.DB, reqLProductGroup *LocalProductGroup) (*LocalProductGroup, error)
 	ReadProductRecords(ctx *context.Context, db *gorm.DB, filters url.Values) (products ProductRecords, err error)
 	ReadByBarcode(ctx *context.Context, db *gorm.DB, rec *ProductRecord, filters url.Values) (*ProductRecord, error)
 	ReadImagesWithoutProduct(ctx *context.Context, db *gorm.DB, filters url.Values) (mimages image.MapImages, err error)
@@ -43,7 +46,28 @@ func newRepo(client *client.Client) (Repo, error) {
 	return r, nil
 }
 
-// Create implements Repo.
+func (i *repo) CreateProductGroup(ctx *context.Context, db *gorm.DB, lprdgrp *LocalProductGroup) error {
+	if lprdgrp == nil {
+		return nil
+	} else if err := db.Create(lprdgrp).Error; err != nil {
+		return err
+	} else {
+		return nil
+	}
+}
+
+func (i *repo) Save(ctx *context.Context, db *gorm.DB, products LocalProducts) error {
+	for _, prd := range products {
+		if err := db.Save(prd).Error; err != nil {
+			return err
+		} else {
+			return nil
+		}
+	}
+	return nil
+}
+
+// Create ...
 func (i *repo) Create(ctx *context.Context, db *gorm.DB, products LocalProducts) error {
 	if len(products) == 0 {
 		return nil
@@ -56,6 +80,22 @@ func (i *repo) Create(ctx *context.Context, db *gorm.DB, products LocalProducts)
 
 // Create stores product records
 func (i *repo) CreateRecord(ctx *context.Context, db *gorm.DB, prodRecs ProductRecords) error {
+	for _, prodRec := range prodRecs {
+		if prodRec.LocalProduct != nil && prodRec.LocalProduct.Product != nil &&
+			(prodRec.LocalProduct.Product.LocalProduct == nil ||
+				!database.IsValid(prodRec.LocalProduct.Product.ProductStock.ProductID)) {
+			// Register locally
+			if prd, err := i.client.CreateProduct(
+				ctx,
+				prodRec.LocalProduct.Product,
+			); err != nil {
+				return err
+			} else {
+				prodRec.LocalProduct.Product = prd
+			}
+		}
+	}
+
 	if len(prodRecs) == 0 {
 		return nil
 	} else if err := db.CreateInBatches(prodRecs, 100).Error; err != nil {
@@ -89,6 +129,63 @@ func (i *repo) Read(ctx *context.Context, db *gorm.DB, filters url.Values) (prod
 	}
 }
 
+func (i *repo) FirstOrCreateLocalProuctGroup(ctx *context.Context, db *gorm.DB, reqLProductGroup *LocalProductGroup) (*LocalProductGroup, error) {
+	var (
+		storedPrdGrp LocalProductGroup
+		// response     = models.ProductGroupResponse{}
+		// request      = models.ProductGroupRequest{ProductGroup: *prdgrp.ProductGroup}
+	)
+	// 1) First or create the product group
+	// 1-1) Fetch from db
+	if err := db.
+		Joins("ProductGroup").
+		// Preload("ProductGroup", "slug=?", lprdgrp.ProductGroup.Slug).
+		Joins("ProductGroup.Cover").Preload("ProductGroup.Images").
+		Preload("ProductGroup.Products").Preload("ProductGroup.Products.Nodes").
+		// Preload("ProductGroup.Products.Cover").Preload("ProductGroup.Products.Images").
+		Joins("Cover").Preload("Gallery").Preload("Gallery.Image").
+		Where(&LocalProductGroup{Slug: reqLProductGroup.ProductGroup.Slug}).
+		Take(&storedPrdGrp).Error; errors.Is(err, gorm.ErrRecordNotFound) ||
+		storedPrdGrp.ProductGroup == nil {
+		var rprdgrp *models.ProductGroup
+		// Retrieve from remote
+		if rprdgrp, err = i.client.GetProductGroupBySlug(
+			ctx,
+			simutils.MakeSlug(reqLProductGroup.ProductGroup.Slug),
+		); err != nil && !errors.Is(err, models.ErrNotFound) {
+			return nil, err
+		} else if errors.Is(err, models.ErrNotFound) {
+			// register
+			if rprdgrp, err = i.client.CreateProductGroup(
+				ctx,
+				reqLProductGroup.ProductGroup,
+			); err != nil {
+				return nil, err
+			}
+		}
+
+		if rprdgrp == nil {
+			return nil, models.ErrNotFound
+		}
+
+		reqProductGroupProducts := reqLProductGroup.ProductGroup.Products
+		reqLProductGroup.ProductGroup = rprdgrp
+		reqLProductGroup.ProductGroup.Products = reqProductGroupProducts
+
+		// Write product group into the database
+		if tx := db.WithContext(ctx.Request().Context()); tx == nil {
+			return nil, err
+		} else if err := i.CreateProductGroup(ctx, tx, reqLProductGroup); err != nil {
+			logrus.Infof("create product group in db failed %v", err)
+			return nil, err
+		} else {
+			return reqLProductGroup, nil
+		}
+	} else {
+		return &storedPrdGrp, nil
+	}
+}
+
 // ReadByBarcode reads products bye barcode
 func (i *repo) ReadByBarcode(ctx *context.Context, db *gorm.DB, rec *ProductRecord, filters url.Values) (*ProductRecord, error) {
 	var stored ProductRecord
@@ -108,10 +205,25 @@ func (i *repo) ReadByBarcode(ctx *context.Context, db *gorm.DB, rec *ProductReco
 		stored.LocalProduct == nil ||
 		stored.LocalProduct.Product == nil {
 		// register from remote
-		if product, err := i.client.GetProductbyBarcode(ctx, rec.Barcode, filters); err != nil {
+		if products, err := i.client.GetProductsByBarcode(ctx, rec.Barcode, filters); err != nil {
 			return nil, err
-		} else if rec.LocalProduct = FromProduct(product); rec.LocalProduct == nil {
-			return nil, fmt.Errorf("nil local product")
+		} else if product, err := models.MergeProductStocks(products); err != nil {
+			return nil, err
+		} else if err = func(rec *ProductRecord, p *models.Product) error {
+			if rec.LocalProduct == nil || rec.LocalProduct.Product == nil {
+				return ErrRemoteProductNotFound
+			} else {
+				rprod := rec.LocalProduct.Product
+				rprod.ID = p.ID
+				rprod.LocalProduct.ID = p.LocalProduct.ID
+				rprod.ProductStock = p.ProductStock
+				rprod.LocalProduct.ProductStocks = p.ProductStocks
+				return nil
+			}
+		}(rec, product); err != nil {
+			return nil, err
+			// } else if rec.LocalProduct = FromProduct(product); rec.LocalProduct == nil {
+			// 	return nil, fmt.Errorf("nil local product")
 		} else if err := i.CreateRecord(ctx, db, ProductRecords{rec}); err != nil {
 			return nil, err
 		} else {

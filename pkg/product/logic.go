@@ -1,6 +1,7 @@
 package product
 
 import (
+	"fmt"
 	"net/url"
 
 	simutils "github.com/alifakhimi/simple-utils-go"
@@ -11,7 +12,6 @@ import (
 	"github.com/spf13/cast"
 	"gitlab.sikapp.ir/sikatech/eshop/eshop-sdk-go-v1/models"
 
-	"github.com/sika365/admin-tools/config"
 	"github.com/sika365/admin-tools/context"
 	"github.com/sika365/admin-tools/pkg/category"
 	"github.com/sika365/admin-tools/pkg/client"
@@ -21,7 +21,8 @@ import (
 
 type Logic interface {
 	Find(ctx *context.Context, req *SyncByImageRequest, filters url.Values) (products LocalProducts, err error)
-	Create(ctx *context.Context, prods LocalProducts, batchSize int) error
+	Save(ctx *context.Context, reqPrdRec *ProductRecord) (prdRec *ProductRecord, err error)
+	FindOrCreateProductGroup(ctx *context.Context, lprdgrp *LocalProductGroup) (*LocalProductGroup, error)
 	SyncByImages(ctx *context.Context, req *SyncByImageRequest, filters url.Values) (*simscheme.Document, error)
 	SyncBySpreadSheets(ctx *context.Context) (*simscheme.Document, error)
 	SetImages(ctx *context.Context, req *SyncByImageRequest, rec *ProductRecord, limages image.LocalImages) error
@@ -62,11 +63,11 @@ func (l *logic) UpdateNodes(ctx *context.Context, prodRec *ProductRecord) (err e
 		topNodes models.Nodes
 	)
 
-	if prodRec.CategoryAlias != "" {
+	if prodRec.CategorySlug != "" {
 		if lcats, err := l.catRepo.Read(ctx,
 			l.conn.DB.WithContext(ctx.Request().Context()),
 			url.Values{
-				"alias": []string{prodRec.CategoryAlias},
+				"slug": []string{prodRec.CategorySlug},
 			},
 		); err != nil {
 			return err
@@ -121,46 +122,111 @@ func (l *logic) UpdateImage(ctx *context.Context, req *SyncByImageRequest, imgs 
 	}
 }
 
-func (l *logic) Create(ctx *context.Context, prods LocalProducts, batchSize int) error {
-	pool := pond.New(batchSize, 0)
+func (l *logic) FindOrCreateProductGroup(ctx *context.Context, reqLProductGroup *LocalProductGroup) (*LocalProductGroup, error) {
+	// 1) First or create the product group
+	if tx := l.conn.DB.WithContext(ctx.Request().Context()); tx == nil {
+		return nil, nil
+	} else if slprdgrp, err := l.repo.FirstOrCreateLocalProuctGroup(ctx, tx, reqLProductGroup); err != nil {
+		// 2) First or create product records related to the group
+		return nil, err
+	} else {
+		return slprdgrp, nil
+	}
+}
 
-	for _, prd := range prods {
-		pool.Submit(func() {
-			var (
-				conf         = config.Config()
-				productsResp = models.ProductsResponse{}
-			)
+func (l *logic) Save(ctx *context.Context, reqPrdRec *ProductRecord) (prdRec *ProductRecord, err error) {
+	var (
+		productsResp = models.ProductsResponse{}
+		topNodes     models.Nodes
+		isChanged    = false
+	)
 
-			logrus.Infof("Running task for %v", prd)
-			// Upload files
-			if client, err := conf.GetRestyClient("sika365"); err != nil {
-				return
-			} else if resp, err := client.R().
-				SetBody(prd).
-				SetResult(&productsResp).
-				SetError(&productsResp).
-				Put("/products"); err != nil {
-				logrus.Info(err)
-				return
-			} else if !resp.IsSuccess() {
-				return
-			} else if prods := productsResp.Data.Products; len(prods) == 0 || prods[0] == nil {
-				return
-			} else if resultProd := prods[0]; false {
-				return
-				// Write uploaded files into the database
-			} else if tx := l.conn.DB.WithContext(ctx.Request().Context()); tx == nil {
-				return
-			} else if err := l.repo.Create(ctx, tx, LocalProducts{&LocalProduct{Product: resultProd}}); err != nil {
-				logrus.Infof("writing file %v in db failed", prd)
-				return
-			}
-		})
+	logrus.Infof("Running task for product => %v", reqPrdRec)
+
+	if reqPrdRec.CategorySlug != "" {
+		if catRecs, err := l.catRepo.ReadCategoryRecords(ctx,
+			l.conn.DB.WithContext(ctx.Request().Context()),
+			url.Values{
+				"slug": []string{reqPrdRec.CategorySlug},
+			},
+		); err != nil {
+			return nil, err
+		} else if len(catRecs) != 1 {
+			logrus.Errorf("no category record found %s - product record: %s", reqPrdRec.CategorySlug, reqPrdRec.Barcode)
+			return nil, models.ErrNotFound
+		} else if catRec := catRecs[0]; catRec == nil {
+			// break
+		} else {
+			reqPrdRec.LocalCategory = catRec.LocalCategory
+			topNodes = append(topNodes, reqPrdRec.LocalCategory.Category.Nodes...)
+		}
 	}
 
-	pool.StopAndWait()
+	if prdRec, err = l.repo.ReadByBarcode(ctx,
+		l.conn.DB.WithContext(ctx.Request().Context()),
+		reqPrdRec,
+		ctx.QueryParams(),
+	); err != nil {
+		return nil, err
+	}
 
-	return nil
+	lprd := prdRec.LocalProduct
+	rprd := lprd.Product
+
+	for _, topNode := range topNodes {
+		found := false
+		for _, rprdNode := range rprd.Nodes {
+			if rprdNode.ParentID != nil && *rprdNode.ParentID == topNode.ID {
+				found = true
+				break
+			}
+		}
+
+		if !found {
+			nodeSlug := fmt.Sprintf("%s-%s", topNode.Alias, rprd.Slug)
+			rprd.Nodes = append(rprd.Nodes, &models.Node{
+				ParentID: &topNode.ID,
+				System:   new(bool),
+				Alias:    nodeSlug,
+				Slug:     nodeSlug,
+			})
+			isChanged = true
+		}
+	}
+
+	// TODO: Equal remote product with local
+	isChanged = true
+
+	// Write product
+	if !isChanged {
+		return prdRec, nil
+	} else if resp, err := l.client.R().
+		SetBody(rprd).
+		SetResult(&productsResp).
+		SetError(&productsResp).
+		Post("/products"); err != nil {
+		logrus.Info(err)
+		return nil, err
+	} else if !resp.IsSuccess() {
+		return nil, fmt.Errorf("write product (%s) response error %s", rprd.Slug, resp.Status())
+	} else if prods := productsResp.Data.Products; len(prods) == 0 || prods[0] == nil {
+		return nil, ErrRemoteProductNotFound
+	} else if resultProd := prods[0]; resultProd == nil {
+		return nil, ErrRemoteProductNotFound
+		// Write uploaded files into the database
+	} else if tx := l.conn.DB.WithContext(ctx.Request().Context()); tx == nil {
+		return nil, nil
+	} else {
+		rprd = resultProd
+		lprd.Product = rprd
+		lprd.ProductID = rprd.ID
+		if err = l.repo.Save(ctx, tx, LocalProducts{lprd}); err != nil {
+			logrus.Infof("writing file %v in db failed %v", lprd, err)
+			return nil, err
+		}
+	}
+
+	return prdRec, nil
 }
 
 func (l *logic) SyncByImages(ctx *context.Context, req *SyncByImageRequest, filters url.Values) (*simscheme.Document, error) {
@@ -247,8 +313,8 @@ func (l *logic) SyncBySpreadSheets(ctx *context.Context) (*simscheme.Document, e
 				}
 			)
 
-			if req.ProductHeaderMap.CategoryAlias != "" {
-				prodRec.CategoryAlias = slug.Make(rec[header[req.ProductHeaderMap.CategoryAlias]])
+			if req.ProductHeaderMap.CategorySlug != "" {
+				prodRec.CategorySlug = slug.Make(rec[header[req.ProductHeaderMap.CategorySlug]])
 			}
 
 			pool.Submit(func() {
@@ -327,5 +393,5 @@ func (l *logic) MatchBarcode(_ *context.Context, _ *SyncByImageRequest, barcode 
 		}
 	}
 
-	return nil, simutils.ErrNotFound
+	return nil, models.ErrNotFound
 }
