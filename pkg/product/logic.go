@@ -136,9 +136,9 @@ func (l *logic) FindOrCreateProductGroup(ctx *context.Context, reqLProductGroup 
 
 func (l *logic) Save(ctx *context.Context, reqPrdRec *ProductRecord) (prdRec *ProductRecord, err error) {
 	var (
-		productsResp = models.ProductsResponse{}
-		topNodes     models.Nodes
-		isChanged    = false
+		topNodes models.Nodes
+		// productsResp = models.ProductsResponse{}
+		// isChanged    = false
 	)
 
 	logrus.Infof("Running task for product => %v", reqPrdRec)
@@ -162,15 +162,7 @@ func (l *logic) Save(ctx *context.Context, reqPrdRec *ProductRecord) (prdRec *Pr
 		}
 	}
 
-	if prdRec, err = l.repo.ReadByBarcode(ctx,
-		l.conn.DB.WithContext(ctx.Request().Context()),
-		reqPrdRec,
-		ctx.QueryParams(),
-	); err != nil {
-		return nil, err
-	}
-
-	lprd := prdRec.LocalProduct
+	lprd := reqPrdRec.LocalProduct
 	rprd := lprd.Product
 
 	for _, topNode := range topNodes {
@@ -190,41 +182,49 @@ func (l *logic) Save(ctx *context.Context, reqPrdRec *ProductRecord) (prdRec *Pr
 				Alias:    nodeSlug,
 				Slug:     nodeSlug,
 			})
-			isChanged = true
+			// isChanged = true
 		}
+	}
+
+	if prdRec, err = l.repo.ReadByBarcode(ctx,
+		l.conn.DB.WithContext(ctx.Request().Context()),
+		reqPrdRec,
+		ctx.QueryParams(),
+	); err != nil {
+		return nil, err
 	}
 
 	// TODO: Equal remote product with local
-	isChanged = true
+	// isChanged = true
 
-	// Write product
-	if !isChanged {
-		return prdRec, nil
-	} else if resp, err := l.client.R().
-		SetBody(rprd).
-		SetResult(&productsResp).
-		SetError(&productsResp).
-		Post("/products"); err != nil {
-		logrus.Info(err)
-		return nil, err
-	} else if !resp.IsSuccess() {
-		return nil, fmt.Errorf("write product (%s) response error %s", rprd.Slug, resp.Status())
-	} else if prods := productsResp.Data.Products; len(prods) == 0 || prods[0] == nil {
-		return nil, ErrRemoteProductNotFound
-	} else if resultProd := prods[0]; resultProd == nil {
-		return nil, ErrRemoteProductNotFound
-		// Write uploaded files into the database
-	} else if tx := l.conn.DB.WithContext(ctx.Request().Context()); tx == nil {
-		return nil, nil
-	} else {
-		rprd = resultProd
-		lprd.Product = rprd
-		lprd.ProductID = rprd.ID
-		if err = l.repo.Save(ctx, tx, LocalProducts{lprd}); err != nil {
-			logrus.Infof("writing file %v in db failed %v", lprd, err)
-			return nil, err
-		}
-	}
+	// // Write product
+	// if !isChanged {
+	// 	return prdRec, nil
+	// } else if resp, err := l.client.R().
+	// 	SetBody(rprd).
+	// 	SetResult(&productsResp).
+	// 	SetError(&productsResp).
+	// 	Post("/products"); err != nil {
+	// 	logrus.Info(err)
+	// 	return nil, err
+	// } else if !resp.IsSuccess() {
+	// 	return nil, fmt.Errorf("write product (%s) response error %s", rprd.Slug, resp.Status())
+	// } else if prods := productsResp.Data.Products; len(prods) == 0 || prods[0] == nil {
+	// 	return nil, ErrRemoteProductNotFound
+	// } else if resultProd := prods[0]; resultProd == nil {
+	// 	return nil, ErrRemoteProductNotFound
+	// 	// Write uploaded files into the database
+	// } else if tx := l.conn.DB.WithContext(ctx.Request().Context()); tx == nil {
+	// 	return nil, nil
+	// } else {
+	// 	rprd = resultProd
+	// 	lprd.Product = rprd
+	// 	lprd.ProductID = rprd.ID
+	// 	if err = l.repo.Save(ctx, tx, LocalProducts{lprd}); err != nil {
+	// 		logrus.Infof("writing file %v in db failed %v", lprd, err)
+	// 		return nil, err
+	// 	}
+	// }
 
 	return prdRec, nil
 }

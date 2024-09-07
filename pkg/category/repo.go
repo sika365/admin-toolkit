@@ -32,7 +32,7 @@ func newRepo() (Repo, error) {
 // Create creates category records in batches
 func (i *repo) Create(ctx *context.Context, db *gorm.DB, catRecs CategoryRecords) error {
 	for _, catRec := range catRecs {
-		if err := db.FirstOrCreate(catRec).Error; err != nil {
+		if err := db.Save(catRec).Error; err != nil {
 			return err
 		}
 	}

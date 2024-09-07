@@ -2,6 +2,7 @@ package woocommerce
 
 import (
 	"encoding/json"
+	"strings"
 	"time"
 
 	simutils "github.com/alifakhimi/simple-utils-go"
@@ -98,7 +99,7 @@ func (WpTerm) TableName() string {
 
 func (p *WpPost) GetBarcodes() (barcodes models.Barcodes) {
 	for _, m := range p.Meta {
-		if m.MetaKey == "_sku" {
+		if m.MetaKey == "_sku" && len(strings.TrimSpace(m.MetaValue)) > 2 {
 			barcodes = append(barcodes, &models.Barcode{Barcode: m.MetaValue})
 		}
 	}
@@ -204,6 +205,10 @@ func (p *WpPost) ToProductRecord(catAlias string, prd *models.Product) *product.
 	// 		Variation
 
 	if len(barcodes) == 0 {
+		return nil
+	}
+
+	if len(barcodes[0].Barcode) < 3 {
 		return nil
 	}
 

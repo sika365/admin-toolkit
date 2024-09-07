@@ -49,9 +49,9 @@ func (r *rest) Scan(ectx echo.Context) error {
 		return nil
 	} else if request.MaxDepth = utils.Max(request.MaxDepth, -1); request.MaxDepth > 10 {
 		return file.ErrInvalidMaxDepthValue
-	} else if request.Root = utils.DefaultIfZero(request.Root, DefaultRoot); request.Root == "" {
+	} else if request.Root = simutils.DefaultIfZero(request.Root, DefaultRoot); request.Root == "" {
 		return file.ErrEmptyRootNotValid
-	} else if request.ContentTypes = utils.DefaultIfZero(request.ContentTypes, ImageContentTypeRegex); request.ContentTypes == "" {
+	} else if request.ContentTypes = simutils.DefaultIfZero(request.ContentTypes, ImageContentTypeRegex); request.ContentTypes == "" {
 		return file.ErrInvalidContentTypesValue
 	} else if reContentType, err := regexp.Compile(request.ContentTypes); err != nil {
 		return err
@@ -75,9 +75,9 @@ func (r *rest) Sync(ectx echo.Context) error {
 		return nil
 	} else if request.MaxDepth = utils.Max(request.MaxDepth, -1); request.MaxDepth > 10 {
 		return file.ErrInvalidMaxDepthValue
-	} else if request.Root = utils.DefaultIfZero(request.Root, DefaultRoot); request.Root == "" {
+	} else if request.Root = simutils.DefaultIfZero(request.Root, DefaultRoot); request.Root == "" {
 		return file.ErrEmptyRootNotValid
-	} else if request.ContentTypes = utils.DefaultIfZero(request.ContentTypes, ImageContentTypeRegex); request.ContentTypes == "" {
+	} else if request.ContentTypes = simutils.DefaultIfZero(request.ContentTypes, ImageContentTypeRegex); request.ContentTypes == "" {
 		return file.ErrInvalidContentTypesValue
 	} else if images, err := r.logic.Sync(ctx, request.Root, request.MaxDepth, request.Replace, filters); err != nil {
 		return err

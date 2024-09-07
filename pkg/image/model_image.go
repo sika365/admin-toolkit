@@ -37,6 +37,10 @@ func (i *LocalImage) Hash() string {
 }
 
 func FromImage(m *models.Image) *LocalImage {
+	if m == nil {
+		return nil
+	}
+
 	return &LocalImage{
 		ImageID: m.ID,
 		Image:   m,

@@ -106,8 +106,10 @@ func (l *logic) SyncProduct(ctx *context.Context, req *SyncRequest, dbconn *simu
 					for _, prd := range reqLProductGroup.ProductGroup.Products {
 						prd.ProductGroupID, _ = lproductGroup.ID.ToNullPID()
 
-						if storedPrdRecs, err := l.SaveProduct(ctx, post, prd, categoryRecords); err != nil { // check cover and gallery
+						if storedPrdRecs, err := l.SaveProduct(ctx, post, prd, categoryRecords); err != nil && !errors.Is(err, models.ErrNotFound) { // check cover and gallery
 							return nil, err
+						} else if errors.Is(err, models.ErrNotFound) {
+							continue
 						} else {
 							prdRecs = append(prdRecs, storedPrdRecs...)
 
@@ -129,8 +131,10 @@ func (l *logic) SyncProduct(ctx *context.Context, req *SyncRequest, dbconn *simu
 					topNodes,
 				)
 
-				if storedPrdRecs, err := l.SaveProduct(ctx, post, prd, categoryRecords); err != nil { // check cover and gallery
+				if storedPrdRecs, err := l.SaveProduct(ctx, post, prd, categoryRecords); err != nil && !errors.Is(err, models.ErrNotFound) { // check cover and gallery
 					return nil, err
+				} else if errors.Is(err, models.ErrNotFound) {
+					continue
 				} else {
 					prdRecs = append(prdRecs, storedPrdRecs...)
 
