@@ -244,6 +244,9 @@ func (l *logic) StoreCategoryRecords(ctx *context.Context, req *SyncRequest, src
 
 	// Retrieve the "uncategorized" node.
 	if uncategorizedNode, err = l.client.GetNodeByAlias(ctx, "uncategorized"); err != nil {
+		logrus.WithFields(logrus.Fields{
+			"category_alias": "uncategorized",
+		}).Errorln(err)
 		return err
 	}
 
@@ -340,6 +343,9 @@ func (l *logic) StoreCategoryRecord(ctx *context.Context, srcCatRec *category.Ca
 				srcCatRec.LocalCategory.Category,
 				parentRnodes...,
 			); err != nil {
+				logrus.WithFields(logrus.Fields{
+					"category_record": srcCatRec,
+				}).Errorln(err)
 				return err
 			}
 		} else if err != nil {

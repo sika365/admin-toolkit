@@ -1,3 +1,4 @@
+### Woocommerce Sync
 POST http://localhost:8080/api/v1/woocommerce/sync
 content-type: application/json
 
@@ -5,7 +6,7 @@ content-type: application/json
   "database_config": {
     "driver": 4,
     "dsn": "root:LhfzHrXFmF@tcp(mysql:3306)/bamika-woocommerce?charset=utf8mb4&parseTime=True&loc=Local",
-    "debug": true,
+    "debug": false,
     "logger": {
       "colorful": true,
       "log_level": 4

@@ -16,6 +16,15 @@ type ServiceConfig struct {
 	Meta map[string]any `json:"meta,omitempty" mapstructure:"meta"`
 }
 
+type Log struct {
+	Formatter string
+}
+
+func (l *Log) UnmarshalJSON(d []byte) error {
+
+	return nil
+}
+
 type Meta struct {
 	MetaValue `mapstructure:",squash"`
 	Mock      MetaValue `json:"mock,omitempty" mapstructure:"mock"`

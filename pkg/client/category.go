@@ -14,24 +14,45 @@ import (
 )
 
 func (c *Client) GetCategoryByAlias(ctx *context.Context, alias simutils.Slug) (category *models.Category, err error) {
-	var categoryResp models.CategoriesResponse
+	var (
+		categoryResp models.CategoriesResponse
+		// filters
+		filters = url.Values{
+			"limit":    []string{cast.ToString(1)},
+			"includes": []string{"Nodes.Parent"},
+			"excludes": []string{"product_nodes", "current_node"},
+		}
+		// log
+		logEntry = logrus.
+				WithContext(ctx.Request().Context()).
+				WithFields(logrus.Fields{
+				"GET":     fmt.Sprintf("/categories/{%s}", alias),
+				"filters": filters,
+				"result":  &categoryResp,
+			})
+	)
+
 	if resp, err := c.R().
 		SetPathParams(map[string]string{
 			"alias": alias.ToString(),
 		}).
-		SetQueryParamsFromValues(url.Values{
-			"limit":    []string{cast.ToString(1)},
-			"includes": []string{"Nodes.Parent"},
-			"excludes": []string{"product_nodes", "current_node"},
-		}).
+		SetQueryParamsFromValues(filters).
 		SetResult(&categoryResp).
 		SetError(&categoryResp).
 		Get("/categories/{alias}"); err != nil {
-		logrus.Info(err)
+		logEntry.WithFields(logrus.Fields{
+			"response": resp.Status(),
+		}).Errorln(err)
 		return nil, err
 	} else if !resp.IsSuccess() {
+		logEntry.WithFields(logrus.Fields{
+			"response": resp.Status(),
+		}).Errorln()
 		return nil, fmt.Errorf(resp.Status())
 	} else if categories := categoryResp.Data.Categories; len(categories) == 0 {
+		logEntry.WithFields(logrus.Fields{
+			"response": resp.Status(),
+		}).Errorln(models.ErrNotFound)
 		return nil, models.ErrNotFound
 	} else {
 		return categories[0], nil
@@ -42,23 +63,44 @@ func (c *Client) StoreCategory(ctx *context.Context, category *models.Category, 
 	var (
 		categoryResp models.CategoriesResponse
 		nodeIDs      = make(database.PIDs, 0, len(in))
+		// body
+		body = &models.CategoryRequest{
+			AddedNodes: nodeIDs,
+			Category:   *category,
+		}
+		// log
+		logEntry = logrus.
+				WithContext(ctx.Request().Context()).
+				WithFields(logrus.Fields{
+				"GET":    "/categories",
+				"body":   body,
+				"result": &categoryResp,
+			})
 	)
+
 	for _, n := range in {
 		nodeIDs = append(nodeIDs, n.ID)
 	}
+
 	if resp, err := c.R().
-		SetBody(&models.CategoryRequest{
-			AddedNodes: nodeIDs,
-			Category:   *category,
-		}).
+		SetBody(body).
 		SetResult(&categoryResp).
 		SetError(&categoryResp).
 		Post("/categories"); err != nil {
-		logrus.Info(err)
+		logEntry.WithFields(logrus.Fields{
+			"response": resp.Status(),
+		}).Errorln(err)
 		return nil, err
 	} else if !resp.IsSuccess() {
+		logEntry.WithFields(logrus.Fields{
+			"response": resp.Status(),
+		}).Errorln(err)
 		return nil, fmt.Errorf("create categoriy failed: %v", resp.Status())
 	} else if categories := categoryResp.Data.Categories; len(categories) == 0 {
+		logEntry.WithFields(logrus.Fields{
+			"categories": categories,
+			"response":   resp.Status(),
+		}).Errorln(models.ErrNotFound)
 		return nil, models.ErrNotFound
 	} else {
 		return categories[0], nil

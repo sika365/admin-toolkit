@@ -29,5 +29,6 @@ config*\.json
 __debug*
 .netrc
 .data
+*.log
 admin-tools
 import

@@ -152,7 +152,8 @@ func (l *logic) Save(ctx *context.Context, reqPrdRec *ProductRecord) (prdRec *Pr
 		); err != nil {
 			return nil, err
 		} else if len(catRecs) != 1 {
-			logrus.Errorf("no category record found %s - product record: %s", reqPrdRec.CategorySlug, reqPrdRec.Barcode)
+			logrus.WithField("category_records", catRecs).
+				Errorf("no category record found %s - product record: %s", reqPrdRec.CategorySlug, reqPrdRec.Barcode)
 			return nil, models.ErrNotFound
 		} else if catRec := catRecs[0]; catRec == nil {
 			// break

@@ -27,6 +27,14 @@ func (c *Client) GetProductsByBarcode(ctx *context.Context, barcode string, filt
 		productsResp models.ProductsResponse
 		// clone filters
 		cfilters, _ = url.ParseQuery(filters.Encode())
+		// log
+		logEntry = logrus.
+				WithContext(ctx.Request().Context()).
+				WithFields(logrus.Fields{
+				"GET":     "/products",
+				"filters": cfilters,
+				"result":  &productsResp,
+			})
 	)
 
 	cfilters.Set("search", barcode)
@@ -39,13 +47,26 @@ func (c *Client) GetProductsByBarcode(ctx *context.Context, barcode string, filt
 		SetResult(&productsResp).
 		SetError(&productsResp).
 		Get("/products"); err != nil {
-		logrus.Info(err)
+		logEntry.WithFields(logrus.Fields{
+			"response": resp.Status(),
+		}).Errorln(err)
 		return nil, err
 	} else if !resp.IsSuccess() {
+		logEntry.WithFields(logrus.Fields{
+			"response": resp.Status(),
+		}).Errorln()
 		return nil, fmt.Errorf(resp.Status())
 	} else if products := productsResp.Data.Products; len(products) == 0 {
+		logEntry.WithFields(logrus.Fields{
+			"response": resp.Status(),
+			"products": products,
+		}).Errorln(models.ErrNotFound)
 		return nil, models.ErrNotFound
 	} else if prods, err := c.MatchBarcode(barcode, products); err != nil {
+		logEntry.WithFields(logrus.Fields{
+			"fn":       "Product.MatchBarcode",
+			"products": prods,
+		}).Errorln(err)
 		return nil, err
 	} else {
 		return prods, nil
@@ -55,6 +76,14 @@ func (c *Client) GetProductsByBarcode(ctx *context.Context, barcode string, filt
 func (c *Client) CreateProduct(ctx *context.Context, rprd *models.Product) (*models.Product, error) {
 	var (
 		productsResp = models.ProductsResponse{}
+		// log
+		logEntry = logrus.
+				WithContext(ctx.Request().Context()).
+				WithFields(logrus.Fields{
+				"POST":   "/products",
+				"body":   rprd,
+				"result": &productsResp,
+			})
 	)
 
 	if resp, err := c.R().
@@ -62,13 +91,27 @@ func (c *Client) CreateProduct(ctx *context.Context, rprd *models.Product) (*mod
 		SetResult(&productsResp).
 		SetError(&productsResp).
 		Post("/products"); err != nil {
-		logrus.Info(err)
+		logEntry.WithFields(logrus.Fields{
+			"response": resp.Status(),
+		}).Errorln(err)
 		return nil, err
 	} else if !resp.IsSuccess() {
-		return nil, fmt.Errorf("write product (%s) response error %s", rprd.Slug, resp.Status())
+		err = fmt.Errorf("write product (%s) response error %s", rprd.Slug, resp.Status())
+		logEntry.WithFields(logrus.Fields{
+			"response": resp.Status(),
+		}).Errorln(err)
+		return nil, err
 	} else if prods := productsResp.Data.Products; len(prods) == 0 || prods[0] == nil {
+		logEntry.WithFields(logrus.Fields{
+			"response": resp.Status(),
+			"products": prods,
+		}).Errorln(models.ErrNotFound)
 		return nil, models.ErrNotFound
 	} else if resultProd := prods[0]; resultProd == nil {
+		logEntry.WithFields(logrus.Fields{
+			"response": resp.Status(),
+			"product":  resultProd,
+		}).Errorln(models.ErrNotFound)
 		return nil, models.ErrNotFound
 	} else {
 		return resultProd, nil
@@ -78,6 +121,14 @@ func (c *Client) CreateProduct(ctx *context.Context, rprd *models.Product) (*mod
 func (c *Client) PutProduct(ctx *context.Context, prd *models.Product) (*models.Product, error) {
 	var (
 		updatedProductResp = models.ProductsResponse{}
+		// log
+		logEntry = logrus.
+				WithContext(ctx.Request().Context()).
+				WithFields(logrus.Fields{
+				"PUT":    fmt.Sprintf("/products/{%s}", prd.ID),
+				"body":   prd,
+				"result": &updatedProductResp,
+			})
 	)
 
 	if !database.IsValid(prd.ID) {
@@ -90,11 +141,21 @@ func (c *Client) PutProduct(ctx *context.Context, prd *models.Product) (*models.
 		SetResult(&updatedProductResp).
 		SetError(&updatedProductResp).
 		Put("/products/{id}"); err != nil {
+		logEntry.WithFields(logrus.Fields{
+			"response": resp.Status(),
+		}).Errorln(err)
 		logrus.Info(err)
 		return nil, err
 	} else if !resp.IsSuccess() {
+		logEntry.WithFields(logrus.Fields{
+			"response": resp.Status(),
+		}).Errorln()
 		return nil, fmt.Errorf(resp.Status())
 	} else if products := updatedProductResp.Data.Products; len(products) == 0 {
+		logEntry.WithFields(logrus.Fields{
+			"products": products,
+			"response": resp.Status(),
+		}).Errorln(models.ErrNotFound)
 		return nil, models.ErrNotFound
 	} else {
 		return products[0], nil
@@ -116,6 +177,13 @@ func (c *Client) AddToNodes(ctx *context.Context, prd *models.Product, nodeIDs d
 			Nodes:     map[database.PID][]string{},
 			RemoteIDs: []string{},
 		}
+		// log
+		logEntry = logrus.WithContext(ctx.Request().Context()).
+				WithFields(logrus.Fields{
+				"POST":   "/nodes/products",
+				"body":   &body,
+				"result": &productsResp,
+			})
 	)
 
 	for _, nid := range nodeIDs {
@@ -129,9 +197,14 @@ func (c *Client) AddToNodes(ctx *context.Context, prd *models.Product, nodeIDs d
 		SetResult(&productsResp).
 		SetError(&productsResp).
 		Post("/nodes/products"); err != nil {
-		logrus.Info(err)
+		logEntry.WithFields(logrus.Fields{
+			"response": resp.Status(),
+		}).Errorln(err)
 		return nil, err
 	} else if !resp.IsSuccess() {
+		logEntry.WithFields(logrus.Fields{
+			"response": resp.Status(),
+		}).Errorln(err)
 		return nil, fmt.Errorf(resp.Status())
 		/* } else if prodNodes = productsResp.Data.ProductNodes; len(prodNodes) == 0 {
 		return nil, models.ErrNotFound */
@@ -174,23 +247,40 @@ func (c *Client) MatchBarcodeByNodes(barcode string, productNodes models.Nodes) 
 func (c *Client) GetProductGroupBySlug(ctx *context.Context, slug simutils.Slug) (*models.ProductGroup, error) {
 	var (
 		response = models.ProductGroupResponse{}
+		filters  = url.Values{
+			"limit":    []string{cast.ToString(1)},
+			"includes": []string{"Cover", "Imagables", "Products"},
+		}
+		// log
+		logEntry = logrus.WithContext(ctx.Request().Context()).
+				WithFields(logrus.Fields{
+				"GET":     fmt.Sprintf("/product_groups/{%s}", slug),
+				"filters": filters,
+				"result":  &response,
+			})
 	)
 
 	if resp, err := c.R().
 		SetPathParams(map[string]string{
 			"slug": string(slug),
 		}).
-		SetQueryParamsFromValues(url.Values{
-			"limit":    []string{cast.ToString(1)},
-			"includes": []string{"Cover", "Imagables", "Products"},
-		}).
+		SetQueryParamsFromValues(filters).
 		SetResult(&response).
 		SetError(&response).
 		Get("/product_groups/{slug}"); err != nil {
+		logEntry.WithFields(logrus.Fields{
+			"response": resp.Status(),
+		}).Errorln(err)
 		return nil, err
 	} else if !resp.IsSuccess() {
+		logEntry.WithFields(logrus.Fields{
+			"response": resp.Status(),
+		}).Errorln(err)
 		return nil, err
 	} else if prdGrps := response.Data.ProductGroups; len(prdGrps) == 0 || prdGrps[0] == nil {
+		logrus.WithFields(logrus.Fields{
+			"response": resp.Status(),
+		}).Errorln(models.ErrNotFound)
 		return nil, models.ErrNotFound
 	} else {
 		return prdGrps[0], nil
@@ -201,6 +291,13 @@ func (c *Client) CreateProductGroup(ctx *context.Context, prdgrp *models.Product
 	var (
 		response = models.ProductGroupResponse{}
 		request  = models.ProductGroupRequest{ProductGroup: *prdgrp}
+		// log
+		logEntry = logrus.WithContext(ctx.Request().Context()).
+				WithFields(logrus.Fields{
+				"POST":   "/product_groups",
+				"body":   &request,
+				"result": &response,
+			})
 	)
 
 	if resp, err := c.R().
@@ -208,13 +305,22 @@ func (c *Client) CreateProductGroup(ctx *context.Context, prdgrp *models.Product
 		SetResult(&response).
 		SetError(&response).
 		Post("/product_groups"); err != nil {
+		logEntry.WithFields(logrus.Fields{
+			"response": resp.Status(),
+		}).Errorln(err)
 		return nil, err
 	} else if !resp.IsSuccess() {
+		logEntry.WithFields(logrus.Fields{
+			"response": resp.Status(),
+		}).Errorln(err)
 		return nil, err
 	} else if prdGrps := response.Data.ProductGroups; len(prdGrps) == 0 || prdGrps[0] == nil {
 		if prdGrp := response.Data.ProductGroup; prdGrp != nil {
 			return prdGrp, nil
 		} else {
+			logEntry.WithFields(logrus.Fields{
+				"response": resp.Status(),
+			}).Errorln(models.ErrNotFound)
 			return nil, models.ErrNotFound
 		}
 	} else {

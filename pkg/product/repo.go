@@ -211,6 +211,10 @@ func (i *repo) ReadByBarcode(ctx *context.Context, db *gorm.DB, rec *ProductReco
 			return nil, err
 		} else if err = func(rec *ProductRecord, p *models.Product) error {
 			if rec.LocalProduct == nil || rec.LocalProduct.Product == nil {
+				logrus.WithFields(logrus.Fields{
+					"barcode":        rec.Barcode,
+					"product_record": rec,
+				}).Errorln(ErrRemoteProductNotFound)
 				return ErrRemoteProductNotFound
 			} else {
 				rprod := rec.LocalProduct.Product
@@ -230,6 +234,7 @@ func (i *repo) ReadByBarcode(ctx *context.Context, db *gorm.DB, rec *ProductReco
 			return rec, nil
 		}
 	} else if err != nil {
+		logrus.WithField("product_record", rec).Errorln(err)
 		return nil, err
 	} else {
 		return &stored, nil

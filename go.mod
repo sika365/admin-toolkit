@@ -3,9 +3,9 @@ module github.com/sika365/admin-tools
 go 1.22.3
 
 require (
-	github.com/alifakhimi/simple-service-go v0.0.0-20240719125813-1974a13ecc21
-	github.com/alifakhimi/simple-utils-go v0.0.8-0.20240906193725-1e2e54cf5e19
-	github.com/alifakhimi/simple-utils-go/simrest v0.0.0-20240906193725-1e2e54cf5e19
+	github.com/alifakhimi/simple-service-go v0.0.0-20240908152144-55487407ac8c
+	github.com/alifakhimi/simple-utils-go v0.0.8
+	github.com/alifakhimi/simple-utils-go/simrest v0.0.0-20240908081924-71833279c1a0
 	github.com/alifakhimi/simple-utils-go/simscheme v0.0.0-20240831155141-8f151ad65a1e
 	github.com/alitto/pond v1.9.1
 	github.com/dustin/go-humanize v1.0.1
@@ -45,7 +45,7 @@ require (
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect
-	github.com/jackc/pgx/v5 v5.6.0 // indirect
+	github.com/jackc/pgx/v5 v5.7.0 // indirect
 	github.com/jackc/puddle/v2 v2.2.1 // indirect
 	github.com/jinzhu/gorm v1.9.16 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
@@ -81,6 +81,7 @@ require (
 	github.com/xuri/nfp v0.0.0-20230919160717-d98342af3f05 // indirect
 	github.com/yaa110/go-persian-calendar v1.2.1 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
+	go.uber.org/zap v1.27.0 // indirect
 	golang.org/x/crypto v0.27.0 // indirect
 	golang.org/x/net v0.29.0 // indirect
 	golang.org/x/sync v0.8.0 // indirect
