@@ -80,7 +80,6 @@ func (l *logic) SyncProduct(ctx *context.Context, req *SyncRequest, dbconn *simu
 
 		for _, post := range posts {
 			var (
-				productGroup    *models.ProductGroup
 				prd             = &models.Product{}
 				topNodes        = models.Nodes{}
 				categoryRecords = post.GetCategoryRecords()
@@ -125,7 +124,7 @@ func (l *logic) SyncProduct(ctx *context.Context, req *SyncRequest, dbconn *simu
 				)
 
 				prd = post.ToProduct(
-					productGroup,
+					nil,
 					cover,
 					gallery,
 					topNodes,
@@ -187,7 +186,8 @@ func (l *logic) SaveProduct(ctx *context.Context, post *WpPost, prd *models.Prod
 
 		if prdRec, err := l.prodLogic.Save(ctx, postPrdRec); err != nil {
 			logrus.Errorf("register product failed %v", err)
-			return nil, err
+			continue
+			// return nil, err
 		} else {
 			prdRecs = append(prdRecs, prdRec)
 		}

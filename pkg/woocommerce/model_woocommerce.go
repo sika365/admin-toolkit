@@ -2,10 +2,12 @@ package woocommerce
 
 import (
 	"encoding/json"
+	"errors"
 	"strings"
 	"time"
 
 	simutils "github.com/alifakhimi/simple-utils-go"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cast"
 	"gitlab.sikapp.ir/sikatech/eshop/eshop-sdk-go-v1/database"
 	"gitlab.sikapp.ir/sikatech/eshop/eshop-sdk-go-v1/models"
@@ -99,7 +101,7 @@ func (WpTerm) TableName() string {
 
 func (p *WpPost) GetBarcodes() (barcodes models.Barcodes) {
 	for _, m := range p.Meta {
-		if m.MetaKey == "_sku" && len(strings.TrimSpace(m.MetaValue)) > 2 {
+		if m.MetaKey == "_sku" && len(strings.TrimSpace(m.MetaValue)) >= 3 {
 			barcodes = append(barcodes, &models.Barcode{Barcode: m.MetaValue})
 		}
 	}
@@ -205,10 +207,14 @@ func (p *WpPost) ToProductRecord(catAlias string, prd *models.Product) *product.
 	// 		Variation
 
 	if len(barcodes) == 0 {
+		logrus.WithFields(logrus.Fields{
+			"post": p,
+		}).Errorln(errors.New("no barcode available"))
 		return nil
-	}
-
-	if len(barcodes[0].Barcode) < 3 {
+	} else if len(barcodes[0].Barcode) < 3 {
+		logrus.WithFields(logrus.Fields{
+			"post": p,
+		}).Errorln(errors.New("barcode length is smaller than 3 characters"))
 		return nil
 	}
 
@@ -291,6 +297,7 @@ func (p *WpPost) GetAttachments() (cover *models.Image, gallery models.Imagables
 			img := &models.Image{
 				Title: subpost.PostTitle,
 				URL:   subpost.Guid,
+				Tags:  "[external_url]",
 				Description: func() string {
 					if subpost.PostContent != "" {
 						return subpost.PostContent

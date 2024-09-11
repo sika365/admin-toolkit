@@ -234,7 +234,10 @@ func (i *repo) ReadByBarcode(ctx *context.Context, db *gorm.DB, rec *ProductReco
 			return rec, nil
 		}
 	} else if err != nil {
-		logrus.WithField("product_record", rec).Errorln(err)
+		logrus.WithFields(logrus.Fields{
+			"fn":             "Product.repo.ReadByBarcode",
+			"product_record": rec,
+		}).Errorln(err)
 		return nil, err
 	} else {
 		return &stored, nil
