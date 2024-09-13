@@ -20,6 +20,7 @@ type LocalCategory struct {
 	CoverID    database.NullPID  `json:"cover_id,omitempty"`
 	CategoryID database.PID      `json:"category_id,omitempty"`
 	Cover      *image.LocalImage `json:"cover,omitempty"`
+	Gallery    models.Imagables  `json:"gallery" gorm:"polymorphic:Owner;"`
 	Nodes      node.LocalNodes   `json:"nodes,omitempty" gorm:"polymorphic:Owner"`
 	Category   *models.Category  `json:"category,omitempty"`
 }

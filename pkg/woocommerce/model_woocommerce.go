@@ -11,6 +11,7 @@ import (
 	"github.com/spf13/cast"
 	"gitlab.sikapp.ir/sikatech/eshop/eshop-sdk-go-v1/database"
 	"gitlab.sikapp.ir/sikatech/eshop/eshop-sdk-go-v1/models"
+	"gorm.io/gorm"
 
 	"github.com/sika365/admin-tools/pkg/category"
 	"github.com/sika365/admin-tools/pkg/image"
@@ -70,6 +71,9 @@ type WpTermTaxonomy struct {
 	Count              int             `json:"count,omitempty" gorm:"column:count;"`
 	Term               *WpTerm         `json:"term,omitempty" gorm:"references:term_id;foreignKey:term_id"`
 	ParentTermTaxonomy *WpTermTaxonomy `json:"parent_term_taxonomy,omitempty" gorm:"foreignKey:parent"`
+	Posts              []*WpPost       `json:"posts,omitempty" gorm:"many2many:wp_term_relationships;foreignKey:term_taxonomy_id;joinForeignKey:term_taxonomy_id;references:id;joinReferences:object_id;"`
+	Meta               []*WpTermmeta   `json:"meta,omitempty" gorm:"foreignKey:term_id"`
+	Thumbnail          *WpPost         `json:"thumbnail,omitempty" gorm:"-:all"`
 }
 
 type WpTerm struct {
@@ -77,6 +81,13 @@ type WpTerm struct {
 	Name      string `json:"name,omitempty" gorm:"column:name;"`
 	Slug      string `json:"slug,omitempty" gorm:"column:slug;"`
 	TermGroup int    `json:"term_group,omitempty" gorm:"column:term_group;"`
+}
+
+type WpTermmeta struct {
+	MetaId    uint   `json:"meta_id,omitempty" gorm:"primaryKey;"`
+	TermId    uint   `json:"term_id,omitempty" gorm:"column:term_id;"`
+	MetaKey   string `json:"meta_key,omitempty" gorm:"column:meta_key;"`
+	MetaValue string `json:"meta_value,omitempty" gorm:"column:meta_value;"`
 }
 
 func (WpPost) TableName() string {
@@ -97,6 +108,43 @@ func (WpTermTaxonomy) TableName() string {
 
 func (WpTerm) TableName() string {
 	return "wp_terms"
+}
+
+func (tt *WpTermTaxonomy) AfterFind(tx *gorm.DB) (err error) {
+	// Find thumbnail Id from termmeta
+	var (
+		thumbnailId uint
+		thumbnail   WpPost
+	)
+
+	for _, m := range tt.Meta {
+		switch m.MetaKey {
+		case "thumbnail_id":
+			thumbnailId = cast.ToUint(m.MetaValue)
+		}
+		if thumbnailId > 0 {
+			break
+		}
+	}
+
+	if thumbnailId == 0 {
+		return nil
+	}
+
+	if err := tx.
+		Preload("Meta").Preload("TermTaxonomies.Term").
+		Preload("Posts").Preload("Posts.Meta").
+		Where("id = ? AND post_type = ?", thumbnailId, "attachment").
+		Find(&thumbnail).Error; err != nil {
+		return err
+	}
+
+	if thumbnail.ID != 0 {
+		tt.Thumbnail = &thumbnail
+		tt.Posts = append(tt.Posts, tt.Thumbnail)
+	}
+
+	return nil
 }
 
 func (p *WpPost) GetBarcodes() (barcodes models.Barcodes) {
@@ -149,6 +197,127 @@ func (p *WpPost) IsProductGroup() bool {
 		}
 	}
 	return false
+}
+
+func (p *WpPost) GetAttachments() (cover *models.Image, gallery models.Imagables) {
+	var (
+		thumbnailId uint
+	)
+
+	for _, m := range p.Meta {
+		switch m.MetaKey {
+		case "_thumbnail_id":
+			thumbnailId = cast.ToUint(m.MetaValue)
+		}
+		if thumbnailId > 0 {
+			break
+		}
+	}
+
+	// attachment
+	for _, subpost := range p.Posts {
+		switch subpost.PostType {
+		case "attachment":
+			img := &models.Image{
+				Title: subpost.PostTitle,
+				URL:   *database.URLFromString(subpost.Guid),
+				Tags:  "[external_url]",
+				Description: func() string {
+					if subpost.PostContent != "" {
+						return subpost.PostContent
+					} else if subpost.PostExcerpt != "" {
+						return subpost.PostExcerpt
+					}
+					return ""
+				}(),
+				Alias: subpost.PostName,
+				Name:  subpost.PostTitle,
+			}
+
+			for _, m := range subpost.Meta {
+				switch m.MetaKey {
+				case "_wp_attached_file":
+				case "_wp_attachment_metadata":
+				case "_wp_attachment_image_alt":
+					img.Title = m.MetaValue
+				}
+			}
+
+			if thumbnailId == subpost.ID {
+				cover = img
+			} else {
+				gallery = append(gallery, &models.Imagable{
+					Image: img,
+				})
+			}
+		}
+	}
+
+	return
+}
+
+func (p *WpTermTaxonomy) GetAttachments() (cover *models.Image, gallery models.Imagables) {
+	var (
+		thumbnailId uint
+	)
+
+	for _, m := range p.Meta {
+		switch m.MetaKey {
+		case "thumbnail_id":
+			thumbnailId = cast.ToUint(m.MetaValue)
+		}
+		if thumbnailId > 0 {
+			break
+		}
+	}
+
+	// attachment
+	for _, subpost := range p.Posts {
+		switch subpost.PostType {
+		case "attachment":
+			img := &models.Image{
+				Title: subpost.PostTitle,
+				URL:   *database.URLFromString(subpost.Guid),
+				Tags:  "[external_url]",
+				Description: func() string {
+					if subpost.PostContent != "" {
+						return subpost.PostContent
+					} else if subpost.PostExcerpt != "" {
+						return subpost.PostExcerpt
+					}
+					return ""
+				}(),
+				Alias: subpost.PostName,
+				Name:  subpost.PostTitle,
+			}
+
+			for _, m := range subpost.Meta {
+				switch m.MetaKey {
+				case "_wp_attached_file":
+				case "_wp_attachment_metadata":
+				case "_wp_attachment_image_alt":
+					img.Title = m.MetaValue
+				}
+			}
+
+			if thumbnailId == subpost.ID {
+				cover = img
+			} else {
+				gallery = append(gallery, &models.Imagable{
+					Image: img,
+				})
+			}
+		}
+	}
+
+	return
+}
+
+func (p *WpPost) SetLocalProduct(product *models.Product) *product.LocalProduct {
+	if database.IsValid(product.ID) {
+
+	}
+	return nil
 }
 
 func (p *WpPost) ToProduct(
@@ -275,72 +444,12 @@ func (p *WpPost) ToLocalProductGroup(topNodes models.Nodes) *product.LocalProduc
 	}
 }
 
-func (p *WpPost) GetAttachments() (cover *models.Image, gallery models.Imagables) {
+func (tt *WpTermTaxonomy) ToCategoryRecord() *category.CategoryRecord {
 	var (
-		thumbnailId uint
+		parentAlias    simutils.Slug
+		cover, gallery = tt.GetAttachments()
 	)
 
-	for _, m := range p.Meta {
-		switch m.MetaKey {
-		case "_thumbnail_id":
-			thumbnailId = cast.ToUint(m.MetaValue)
-		}
-		if thumbnailId > 0 {
-			break
-		}
-	}
-
-	// attachment
-	for _, subpost := range p.Posts {
-		switch subpost.PostType {
-		case "attachment":
-			img := &models.Image{
-				Title: subpost.PostTitle,
-				URL:   subpost.Guid,
-				Tags:  "[external_url]",
-				Description: func() string {
-					if subpost.PostContent != "" {
-						return subpost.PostContent
-					} else if subpost.PostExcerpt != "" {
-						return subpost.PostExcerpt
-					}
-					return ""
-				}(),
-				Alias: subpost.PostName,
-				Name:  subpost.PostTitle,
-			}
-
-			for _, m := range subpost.Meta {
-				switch m.MetaKey {
-				case "_wp_attached_file":
-				case "_wp_attachment_metadata":
-				case "_wp_attachment_image_alt":
-					img.Title = m.MetaValue
-				}
-			}
-
-			if thumbnailId == subpost.ID {
-				cover = img
-			} else {
-				gallery = append(gallery, &models.Imagable{
-					Image: img,
-				})
-			}
-		}
-	}
-
-	return
-}
-
-func (p *WpPost) SetLocalProduct(product *models.Product) *product.LocalProduct {
-	if database.IsValid(product.ID) {
-
-	}
-	return nil
-}
-
-func (tt *WpTermTaxonomy) ToCategoryRecord() *category.CategoryRecord {
-	parentAlias := simutils.Slug("")
 	if tt.Parent > 0 {
 		parentAlias = simutils.MakeSlug(cast.ToString(tt.Parent))
 	}
@@ -355,6 +464,8 @@ func (tt *WpTermTaxonomy) ToCategoryRecord() *category.CategoryRecord {
 				Alias:   catSlug,
 				Slug:    catSlug,
 				Content: tt.Description,
+				Cover:   image.FromImage(cover),
+				Gallery: gallery,
 				Nodes: node.LocalNodes{
 					{
 						CommonTableFields: simutils.CommonTableFields{
@@ -371,6 +482,7 @@ func (tt *WpTermTaxonomy) ToCategoryRecord() *category.CategoryRecord {
 					Title:       tt.Term.Name,
 					Slug:        catSlug.ToString(),
 					Alias:       catSlug.ToString(),
+					Cover:       cover,
 					Description: tt.Description,
 					Active:      simutils.SetToNilIfZeroValue[bool](true),
 				},

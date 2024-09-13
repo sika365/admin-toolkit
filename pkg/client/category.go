@@ -62,7 +62,12 @@ func (c *Client) GetCategoryByAlias(ctx *context.Context, alias simutils.Slug) (
 func (c *Client) StoreCategory(ctx *context.Context, category *models.Category, in ...*models.Node) (*models.Category, error) {
 	var (
 		categoryResp models.CategoriesResponse
-		nodeIDs      = make(database.PIDs, 0, len(in))
+		nodeIDs      = func() (nodeIDs database.PIDs) {
+			for _, n := range in {
+				nodeIDs = append(nodeIDs, n.ID)
+			}
+			return
+		}()
 		// body
 		body = &models.CategoryRequest{
 			AddedNodes: nodeIDs,
@@ -77,10 +82,6 @@ func (c *Client) StoreCategory(ctx *context.Context, category *models.Category, 
 				"result": &categoryResp,
 			})
 	)
-
-	for _, n := range in {
-		nodeIDs = append(nodeIDs, n.ID)
-	}
 
 	if resp, err := c.R().
 		SetBody(body).

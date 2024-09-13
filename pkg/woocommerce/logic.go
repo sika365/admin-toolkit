@@ -203,7 +203,7 @@ func (l *logic) SyncCategory(ctx *context.Context, req *SyncRequest, dbconn *sim
 		dbconn.DB.WithContext(ctx.Request().Context()),
 		url.Values{
 			"taxonomy": []string{"product_cat"},
-			"includes": []string{"Term", "ParentTermTaxonomy"},
+			"includes": []string{"Term", "ParentTermTaxonomy", "Posts", "Meta"},
 		},
 	); err != nil {
 		return err

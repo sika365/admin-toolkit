@@ -17,7 +17,7 @@ require (
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cast v1.7.0
 	github.com/xuri/excelize/v2 v2.8.1
-	gitlab.sikapp.ir/sikatech/eshop/eshop-sdk-go-v1 v1.12.10-0.20240906234448-e2e3256d116b
+	gitlab.sikapp.ir/sikatech/eshop/eshop-sdk-go-v1 v1.12.16
 	golang.org/x/exp v0.0.0-20240904232852-e7e105dedf7e
 	gorm.io/driver/sqlite v1.5.6
 	gorm.io/gorm v1.25.11

@@ -60,6 +60,7 @@ github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSs
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc h1:U9qPSI2PIWSS1VwoXQT9A3Wy9MM3WgvqSxFWenqJduM=
 github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
+github.com/denisenkom/go-mssqldb v0.0.0-20191124224453-732737034ffd h1:83Wprp6ROGeiHFAP8WJdI2RoxALQYgdllERc3N5N2DM=
 github.com/denisenkom/go-mssqldb v0.0.0-20191124224453-732737034ffd/go.mod h1:xbL0rPBG9cCiLr28tMa8zpbdarY27NDyej4t/EjAShU=
 github.com/denisenkom/go-mssqldb v0.12.0 h1:VtrkII767ttSPNRfFekePK3sctr+joXgO58stqQbtUA=
 github.com/denisenkom/go-mssqldb v0.12.0/go.mod h1:iiK0YP1ZeepvmBQk/QpLEhhTNJgfzrpArPY/aFvc9yU=
@@ -292,6 +293,8 @@ gitlab.sikapp.ir/sikatech/eshop/eshop-sdk-go-v1 v1.12.10-0.20240906233028-7a79d0
 gitlab.sikapp.ir/sikatech/eshop/eshop-sdk-go-v1 v1.12.10-0.20240906233028-7a79d027cc54/go.mod h1:KSTiD8DkIRvkvWNnqz/efcyXqrnpm5TEU5j9VNoLI4w=
 gitlab.sikapp.ir/sikatech/eshop/eshop-sdk-go-v1 v1.12.10-0.20240906234448-e2e3256d116b h1:7x6Jt+2Ba8wlsh93FM246pxkfSW2R4QkbndGC8Mqa3Y=
 gitlab.sikapp.ir/sikatech/eshop/eshop-sdk-go-v1 v1.12.10-0.20240906234448-e2e3256d116b/go.mod h1:KSTiD8DkIRvkvWNnqz/efcyXqrnpm5TEU5j9VNoLI4w=
+gitlab.sikapp.ir/sikatech/eshop/eshop-sdk-go-v1 v1.12.16 h1:9sS1U4KVOaRFYcx1oanGWdPTwuRMBCakU1zopuD5Rnk=
+gitlab.sikapp.ir/sikatech/eshop/eshop-sdk-go-v1 v1.12.16/go.mod h1:DSSo+6em3ZCNfFQRc9UwIhpV2YpSf1zxEB5vdC244JE=
 go.mongodb.org/mongo-driver v1.11.4/go.mod h1:PTSz5yu21bkT/wXpkS7WR5f0ddqw5quethTUn9WM+2g=
 go.uber.org/multierr v1.11.0 h1:blXXJkSxSSfBVBlC76pxqeO+LN3aDfLQo+309xJstO0=
 go.uber.org/multierr v1.11.0/go.mod h1:20+QtiLqy0Nd6FdQB9TLXag12DsQkrbs3htMFfDN80Y=
