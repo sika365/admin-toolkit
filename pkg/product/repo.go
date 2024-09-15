@@ -140,7 +140,7 @@ func (i *repo) FirstOrCreateLocalProuctGroup(ctx *context.Context, db *gorm.DB, 
 	if err := db.
 		Joins("ProductGroup").
 		// Preload("ProductGroup", "slug=?", lprdgrp.ProductGroup.Slug).
-		Joins("ProductGroup.Cover").Preload("ProductGroup.Images").
+		// Joins("ProductGroup.Cover").Preload("ProductGroup.Images").
 		Preload("ProductGroup.Products").Preload("ProductGroup.Products.Nodes").
 		// Preload("ProductGroup.Products.Cover").Preload("ProductGroup.Products.Images").
 		Joins("Cover").Preload("Gallery").Preload("Gallery.Image").
@@ -220,6 +220,7 @@ func (i *repo) ReadByBarcode(ctx *context.Context, db *gorm.DB, rec *ProductReco
 				rprod := rec.LocalProduct.Product
 				rprod.ID = p.ID
 				rprod.LocalProduct.ID = p.LocalProduct.ID
+				rprod.LocalProduct.StoreID = p.ProductStock.StoreID
 				rprod.ProductStock = p.ProductStock
 				rprod.LocalProduct.ProductStocks = p.ProductStocks
 				return nil

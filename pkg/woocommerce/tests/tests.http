@@ -1,5 +1,5 @@
 ### Woocommerce Sync
-POST http://localhost:8080/api/v1/woocommerce/sync
+POST http://localhost:8080/api/v1/woocommerce/sync?store_id=70&limit=100
 content-type: application/json
 
 {

@@ -179,7 +179,7 @@ func (l *logic) Save(ctx *context.Context, reqPrdRec *ProductRecord) (prdRec *Pr
 		}
 
 		if !found {
-			nodeSlug := fmt.Sprintf("%s-%s", topNode.Alias, rprd.Slug)
+			nodeSlug := fmt.Sprintf("%s-%s", topNode.Slug, rprd.Slug)
 			rprd.Nodes = append(rprd.Nodes, &models.Node{
 				ParentID: &topNode.ID,
 				System:   new(bool),

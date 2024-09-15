@@ -37,6 +37,8 @@ func (c *Client) GetProductsByBarcode(ctx *context.Context, barcode string, filt
 			})
 	)
 
+	qp := "check_availability=false&search_products_in_nodes=false&search_in_node=false&search_in_sub_node=false&get_product_parents=false&search_in_reserved_quantity=false&search_in_limited_quantity=false&cover_status=0&check_products_in_nodes=false&remote_pagination=true&remote_search=true&includes=Cover&includes=Nodes.Parent.Category&includes=Tags.Node.Category&includes=Nodes&includes=CategoryNodes"
+	cfilters, _ = url.ParseQuery(cfilters.Encode() + "&" + qp)
 	cfilters.Set("search", barcode)
 
 	if resp, err := c.R().
@@ -114,6 +116,9 @@ func (c *Client) CreateProduct(ctx *context.Context, rprd *models.Product) (*mod
 		}).Errorln(models.ErrNotFound)
 		return nil, models.ErrNotFound
 	} else {
+		if !database.IsValid(resultProd.LocalProduct.StoreID) {
+			resultProd.LocalProduct.StoreID = resultProd.ProductStock.StoreID
+		}
 		return resultProd, nil
 	}
 }

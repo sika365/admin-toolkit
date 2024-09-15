@@ -357,7 +357,8 @@ func (p *WpPost) ToProduct(
 
 func (p *WpPost) ToProductRecord(catAlias string, prd *models.Product) *product.ProductRecord {
 	var (
-		barcodes = p.GetBarcodes()
+		// barcodes = p.GetBarcodes()
+		barcodes = prd.LocalProduct.Barcodes
 	)
 
 	// Check `Meta`
@@ -426,7 +427,7 @@ func (p *WpPost) ToLocalProductGroup(topNodes models.Nodes) *product.LocalProduc
 		case "product_variation":
 			productGroup.Products = append(
 				productGroup.Products,
-				p.ToProduct(
+				subpost.ToProduct(
 					productGroup,
 					cover,
 					gallery,
