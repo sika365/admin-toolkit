@@ -1,5 +1,5 @@
 ### Sync by Barcode
-POST http://localhost:8080/api/v1/products/sync/images?order_by=newest&check_availability=false&search_products_in_nodes=true&search_in_node=false&search_in_sub_node=false&get_product_parents=false&search_in_reserved_quantity=false&search_in_limited_quantity=false&limit=20&offset=0&cover_status=0&view=node&remote_pagination=false&remote_search=false&includes=Cover&includes=Nodes.Parent.Category&includes=Tags.Node.Category&includes=CategoryNodes&store_id=28&branch_id=32&stock_id=29
+POST http://localhost:8080/api/v1/products/sync/images
 content-type: application/json
 
 {
@@ -10,9 +10,9 @@ content-type: application/json
   "naming_pattern": "",
   // product sync request
   "replace_cover": true,
-  "replace_gallery": false,
+  "replace_gallery": true,
   "ignore_cover_if_empty": false,
-  "ignore_add_to_gallery": true,
+  "ignore_add_to_gallery": false,
   // product scan request
   "cover_naming": "",
   "gallery_naming": "",

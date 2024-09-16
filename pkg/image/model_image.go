@@ -51,14 +51,19 @@ func FromFiles(files file.MapFiles, titlePattern *regexp.Regexp) (LocalImages, M
 	m := make(MapImages)
 	imgs := make(LocalImages, 0, len(files))
 	for _, f := range files {
-		if !titlePattern.MatchString(f.Name) {
+		title := f.Title
+		if title == "" {
+			title = f.Name
+		}
+		if !titlePattern.MatchString(title) {
 			logrus.Infof("%s is not match with %s", f, titlePattern.String())
 			continue
 		}
 
-		submatch := utils.FindStringSubmatch(titlePattern, f.Name)
+		submatch := utils.FindStringSubmatch(titlePattern, title)
 		img := &LocalImage{
 			Image: &models.Image{
+				Name:        submatch["title"],
 				Title:       submatch["title"],
 				Description: submatch["description"],
 			},

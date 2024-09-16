@@ -2,7 +2,7 @@ POST http://localhost:8080/api/v1/images/sync
 content-type: application/json
 
 {
-  "root": "/mnt/inputs/store-images/bookmall",
+  "root": "/Users/ali/Developer/github.com/sika365/admin-toolkit/samples/cat_barcodes",
   "max_depth": 10,
   "content_types": "image/.+",
   "replace": true

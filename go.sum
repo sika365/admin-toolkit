@@ -250,8 +250,8 @@ github.com/youmark/pkcs8 v0.0.0-20181117223130-1be2e3e5546d/go.mod h1:rHwXgn7Jul
 github.com/yuin/goldmark v1.1.27/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
 github.com/yuin/goldmark v1.2.1/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
 github.com/yuin/goldmark v1.4.13/go.mod h1:6yULJ656Px+3vBD8DxQVa3kxgyrAnzto9xy5taEt/CY=
-gitlab.sikapp.ir/sikatech/eshop/eshop-sdk-go-v1 v1.12.17 h1:1dBlVmdM6arlZege/yxisMpzaLxVPAUEfz5w0n0CsA4=
-gitlab.sikapp.ir/sikatech/eshop/eshop-sdk-go-v1 v1.12.17/go.mod h1:fsthmbok5BI0rgciMerx1mTEiIFSNpgRcAg+VSVV1+w=
+gitlab.sikapp.ir/sikatech/eshop/eshop-sdk-go-v1 v1.12.19 h1:XUiZHcLqHXPvHL5nPjj6+k0lX1hAYMMi+hSdUsuiBBI=
+gitlab.sikapp.ir/sikatech/eshop/eshop-sdk-go-v1 v1.12.19/go.mod h1:fsthmbok5BI0rgciMerx1mTEiIFSNpgRcAg+VSVV1+w=
 go.mongodb.org/mongo-driver v1.11.4/go.mod h1:PTSz5yu21bkT/wXpkS7WR5f0ddqw5quethTUn9WM+2g=
 go.uber.org/multierr v1.11.0 h1:blXXJkSxSSfBVBlC76pxqeO+LN3aDfLQo+309xJstO0=
 go.uber.org/multierr v1.11.0/go.mod h1:20+QtiLqy0Nd6FdQB9TLXag12DsQkrbs3htMFfDN80Y=

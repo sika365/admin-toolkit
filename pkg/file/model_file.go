@@ -56,7 +56,7 @@ func (File) TableName() string {
 func NewFile(path string, reContentType *regexp.Regexp, reName *regexp.Regexp) *File {
 	f := &File{}
 
-	if info, err := os.Lstat(path); err != nil {
+	if info, err := os.Stat(path); err != nil {
 		f.err = err
 		return f
 	} else {

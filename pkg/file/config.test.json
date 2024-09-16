@@ -41,6 +41,7 @@
   },
   "meta": {
     "crypto": "md5",
+    "root_cat_barcodes": "../../samples/cat_barcodes",
     "root": "../../samples/images",
     "filters": {
       "barcode_pattern": "^(?P<title>\\d+)(?:[\\.|_].*)?$",

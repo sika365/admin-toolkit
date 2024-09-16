@@ -352,7 +352,7 @@ func (l *logic) SetImages(_ *context.Context, req *SyncByImageRequest, rec *Prod
 
 	for _, limg := range limages {
 		// TODO if image is cover then set cover is true else add to gallery
-		if req.ReplaceCover ||
+		if (req.ReplaceCover && !lprod.CoverSet) ||
 			((!lprod.CoverID.IsValid() && lprod.Cover == nil) &&
 				(!req.IgnoreCoverIfEmpty && !rprod.CoverID.IsValid())) {
 			// product.Cover = &ProductImage{
@@ -364,6 +364,7 @@ func (l *logic) SetImages(_ *context.Context, req *SyncByImageRequest, rec *Prod
 			lprod.Cover = limg
 			lprod.CoverID, _ = limg.ID.ToNullPID()
 			rprod.CoverID, _ = limg.ImageID.ToNullPID()
+			lprod.CoverSet = true
 		} else if req.ReplaceGallery || !req.IgnoreAddToGallery {
 			lprod.Gallery = append(lprod.Gallery, &ProductImage{
 				LocalImageID:   limg.ID,

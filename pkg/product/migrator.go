@@ -12,6 +12,7 @@ func (i *Package) Migrator() error {
 		&models.ProductGroup{},
 		&models.Imagable{},
 		&models.Product{},
+		&models.LocalProduct{},
 		&ProductImage{},
 		&LocalProduct{},
 		&LocalProductGroup{},

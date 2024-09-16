@@ -84,7 +84,7 @@ func (i *repo) CreateRecord(ctx *context.Context, db *gorm.DB, prodRecs ProductR
 		if prodRec.LocalProduct != nil && prodRec.LocalProduct.Product != nil &&
 			(prodRec.LocalProduct.Product.LocalProduct == nil ||
 				!database.IsValid(prodRec.LocalProduct.Product.ProductStock.ProductID)) {
-			// Register locally
+			// Register product
 			if prd, err := i.client.CreateProduct(
 				ctx,
 				prodRec.LocalProduct.Product,
@@ -211,11 +211,13 @@ func (i *repo) ReadByBarcode(ctx *context.Context, db *gorm.DB, rec *ProductReco
 			return nil, err
 		} else if err = func(rec *ProductRecord, p *models.Product) error {
 			if rec.LocalProduct == nil || rec.LocalProduct.Product == nil {
-				logrus.WithFields(logrus.Fields{
-					"barcode":        rec.Barcode,
-					"product_record": rec,
-				}).Errorln(ErrRemoteProductNotFound)
-				return ErrRemoteProductNotFound
+				// logrus.WithFields(logrus.Fields{
+				// 	"barcode":        rec.Barcode,
+				// 	"product_record": rec,
+				// }).Errorln(ErrRemoteProductNotFound)
+				// return ErrRemoteProductNotFound
+				rec.LocalProduct = FromProduct(p)
+				return nil
 			} else {
 				rprod := rec.LocalProduct.Product
 				rprod.ID = p.ID
@@ -252,8 +254,8 @@ func (i *repo) ReadImagesWithoutProduct(ctx *context.Context, db *gorm.DB, filte
 		InnerJoins("File").
 		InnerJoins("Image").
 		Where("local_images.image_id not in (?)",
-			db.Table("products").Select("products.cover_id").
-				Where("products.cover_id=local_images.image_id"),
+			db.Table("viw_products").Select("viw_products.cover_id").
+				Where("viw_products.cover_id=local_images.image_id"),
 		).
 		Order("local_images.id asc").
 		// Joins("LEFT JOIN products ON products.cover_id = local_images.image_id AND products.deleted_at IS NULL").

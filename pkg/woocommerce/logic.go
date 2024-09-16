@@ -238,27 +238,30 @@ func (l *logic) StoreCategoryRecords(ctx *context.Context, req *SyncRequest, src
 		}
 	}
 	var (
-		uncategorizedNode *models.Node
-		// mainCategoriesNode *models.Node
+		// uncategorizedNode  *models.Node
+		mainCategoriesNode *models.Node
 	)
 
 	// Retrieve the "uncategorized" node.
-	if uncategorizedNode, err = l.client.GetNodeByAlias(ctx, "uncategorized"); err != nil {
+	// if uncategorizedNode, err = l.client.GetNodeByAlias(ctx, "uncategorized"); err != nil {
+	// 	logrus.WithFields(logrus.Fields{
+	// 		"category_alias": "uncategorized",
+	// 	}).Errorln(err)
+	// 	return err
+	// }
+
+	// Uncomment and use this if there is a "main_categories" node.
+	if mainCategoriesNode, err = l.client.GetNodeByAlias(ctx, "main_categories"); err != nil {
 		logrus.WithFields(logrus.Fields{
 			"category_alias": "uncategorized",
 		}).Errorln(err)
 		return err
 	}
 
-	// Uncomment and use this if there is a "main_categories" node.
-	// if mainCategoriesNode, err = l.client.GetNodeByAlias(ctx, "main_categories"); err != nil {
-	// 	return err
-	// }
-
 	// Iterate over each category record in the source nested category records.
 	for _, srcCatRec := range srcNestedCatRec {
 		// Recursively call StoreCategoryRecord for each category record.
-		if err := l.storeCategoryRecursive(ctx, srcCatRec, uncategorizedNode); err != nil {
+		if err := l.storeCategoryRecursive(ctx, srcCatRec, mainCategoriesNode); err != nil {
 			return err
 		}
 	}

@@ -36,6 +36,7 @@ type LocalProduct struct {
 	CoverID   database.NullPID  `json:"cover_id,omitempty"`
 	Cover     *image.LocalImage `json:"cover,omitempty"`
 	Gallery   Gallery           `json:"gallery"`
+	CoverSet  bool              `json:"-" gorm:"-:all"`
 	Product   *models.Product   `json:"product,omitempty"`
 }
 

@@ -11,6 +11,54 @@ import (
 	"github.com/sika365/admin-tools/test"
 )
 
+func Test_WalkDir_DirBarcode(t *testing.T) {
+	testReq := test.PreparingTest()
+	filters := url.Values(cast.ToStringMapStringSlice(testReq.Meta["filters"]))
+	reContentType := regexp.MustCompile(cast.ToString(cast.ToStringMap(testReq.Meta["filters"])["content_types"]))
+	reBarcodePattern := regexp.MustCompile(cast.ToString(cast.ToStringMap(testReq.Meta["filters"])["barcode_pattern"]))
+
+	type args struct {
+		root          string
+		maxDepth      int
+		reContentType *regexp.Regexp
+		reName        *regexp.Regexp
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    Files
+		wantErr bool
+	}{
+		{
+			name: "read image (.png|.jpg)",
+			args: args{
+				root:          cast.ToString(testReq.Meta["root_cat_barcodes"]),
+				maxDepth:      cast.ToInt(filters.Get("max_depth")),
+				reContentType: reContentType,
+				reName:        reBarcodePattern,
+			},
+			want: Files{}.AddFiles(
+				reContentType,
+				"../../samples/cat_barcodes/15222/1.jpeg",
+				"../../samples/cat_barcodes/15222/2.png",
+			),
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := WalkDir(tt.args.root, tt.args.maxDepth, tt.args.reContentType, tt.args.reName)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("walkDir() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("walkDir() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
 func Test_WalkDir(t *testing.T) {
 	testReq := test.PreparingTest()
 	filters := url.Values(cast.ToStringMapStringSlice(testReq.Meta["filters"]))
