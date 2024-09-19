@@ -6,6 +6,7 @@ import (
 
 	simutils "github.com/alifakhimi/simple-utils-go"
 	"github.com/sirupsen/logrus"
+	"gitlab.sikapp.ir/sikatech/eshop/eshop-sdk-go-v1/database"
 	"gitlab.sikapp.ir/sikatech/eshop/eshop-sdk-go-v1/models"
 
 	"github.com/sika365/admin-tools/context"
@@ -103,7 +104,10 @@ func (l *logic) SyncProduct(ctx *context.Context, req *SyncRequest, dbconn *simu
 					return nil, nil
 				} else {
 					for _, prd := range reqLProductGroup.ProductGroup.Products {
-						prd.ProductGroupID, _ = lproductGroup.ID.ToNullPID()
+						prd.LocalProduct.ProductGroupID = database.ToNullPID(lproductGroup.ProductGroup.ID)
+						prd.LocalProduct.Cover = lproductGroup.ProductGroup.Cover
+						prd.LocalProduct.CoverID = lproductGroup.ProductGroup.CoverID
+						prd.LocalProduct.Images = lproductGroup.ProductGroup.Images
 
 						if storedPrdRecs, err := l.SaveProduct(ctx, post, prd, categoryRecords); err != nil && !errors.Is(err, models.ErrNotFound) { // check cover and gallery
 							return nil, err
@@ -145,34 +149,6 @@ func (l *logic) SyncProduct(ctx *context.Context, req *SyncRequest, dbconn *simu
 		}
 
 		return prdRecs, nil
-	}
-}
-
-func (l *logic) GetTopNodes(ctx *context.Context, catRecs category.CategoryRecords) (models.Nodes, error) {
-	var (
-		topNodes models.Nodes
-		slugs    []string
-	)
-
-	for _, catRec := range catRecs {
-		if catRec.Slug.IsValid() {
-			slugs = append(slugs, catRec.Slug.ToString())
-		}
-	}
-
-	if lcats, err := l.catRepo.Read(ctx,
-		l.conn.DB.WithContext(ctx.Request().Context()),
-		url.Values{
-			"slug": slugs,
-		},
-	); err != nil {
-		return nil, err
-	} else {
-		for _, lcat := range lcats {
-			topNodes = append(topNodes, lcat.Category.Nodes...)
-		}
-
-		return topNodes, nil
 	}
 }
 
@@ -377,4 +353,32 @@ func (l *logic) StoreCategoryRecord(ctx *context.Context, srcCatRec *category.Ca
 	}
 
 	return nil
+}
+
+func (l *logic) GetTopNodes(ctx *context.Context, catRecs category.CategoryRecords) (models.Nodes, error) {
+	var (
+		topNodes models.Nodes
+		slugs    []string
+	)
+
+	for _, catRec := range catRecs {
+		if catRec.Slug.IsValid() {
+			slugs = append(slugs, catRec.Slug.ToString())
+		}
+	}
+
+	if lcats, err := l.catRepo.Read(ctx,
+		l.conn.DB.WithContext(ctx.Request().Context()),
+		url.Values{
+			"slug": slugs,
+		},
+	); err != nil {
+		return nil, err
+	} else {
+		for _, lcat := range lcats {
+			topNodes = append(topNodes, lcat.Category.Nodes...)
+		}
+
+		return topNodes, nil
+	}
 }
