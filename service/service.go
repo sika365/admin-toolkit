@@ -8,13 +8,13 @@ import (
 
 	"github.com/sika365/admin-tools/config"
 	"github.com/sika365/admin-tools/pkg/category"
-	"github.com/sika365/admin-tools/pkg/client"
 	"github.com/sika365/admin-tools/pkg/file"
 	"github.com/sika365/admin-tools/pkg/image"
 	"github.com/sika365/admin-tools/pkg/node"
 	"github.com/sika365/admin-tools/pkg/product"
 	"github.com/sika365/admin-tools/pkg/woocommerce"
 	"github.com/sika365/admin-tools/registrar"
+	"github.com/sika365/admin-tools/service/client"
 )
 
 type Service struct {

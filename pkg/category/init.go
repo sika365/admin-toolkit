@@ -3,8 +3,8 @@ package category
 import (
 	simutils "github.com/alifakhimi/simple-utils-go"
 
-	"github.com/sika365/admin-tools/pkg/client"
 	"github.com/sika365/admin-tools/registrar"
+	"github.com/sika365/admin-tools/service/client"
 )
 
 const (

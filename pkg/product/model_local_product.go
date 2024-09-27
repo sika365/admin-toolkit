@@ -32,22 +32,24 @@ type LocalProductGroup struct {
 
 type LocalProduct struct {
 	models.CommonTableFields
-	ProductID database.PID      `json:"product_id,omitempty"`
-	CoverID   database.NullPID  `json:"cover_id,omitempty"`
-	Cover     *image.LocalImage `json:"cover,omitempty"`
-	Gallery   Gallery           `json:"gallery"`
-	CoverSet  bool              `json:"-" gorm:"-:all"`
-	Product   *models.Product   `json:"product,omitempty"`
+	ProductID database.PID         `json:"product_id,omitempty"`
+	CoverID   database.NullPID     `json:"cover_id,omitempty"`
+	Cover     *image.LocalImage    `json:"cover,omitempty"`
+	Gallery   Gallery              `json:"gallery"`
+	CoverSet  bool                 `json:"-" gorm:"-:all"`
+	Product   *models.LocalProduct `json:"product,omitempty"`
 }
 
 func FromProduct(prd *models.Product) *LocalProduct {
-	p := &LocalProduct{Product: prd}
+	p := &LocalProduct{Product: prd.LocalProduct}
+	p.Product.ID = prd.ID
+	p.Product.StoreID = prd.StoreID
 	return p
 }
 
 func ToProduct(prd *LocalProduct) *models.Product {
 	product := prd.Product
-	product.CoverID = prd.CoverID
+	product.CoverID = database.ToNullPID(prd.Cover.ImageID)
 	product.Images = make(models.Imagables, 0, len(prd.Gallery))
 
 	for _, img := range prd.Gallery {
@@ -65,7 +67,16 @@ func ToProduct(prd *LocalProduct) *models.Product {
 		product.Images = append(product.Images, &models.Imagable{ImageID: img.ID})
 	}
 
-	return product
+	p := &models.Product{
+		PIDModel:     models.PIDModel{ID: product.ID},
+		LocalProduct: product,
+	}
+
+	if len(product.ProductStocks) > 0 {
+		p.ProductStock = *product.ProductStocks[0]
+	}
+
+	return p
 }
 
 func (LocalProduct) TableName() string {
@@ -81,9 +92,7 @@ func (p *LocalProduct) ToProduct() *models.Product {
 }
 
 func (p *LocalProduct) RemoveNodes() error {
-	if rprod := p.Product; rprod == nil {
-		return ErrRemoteLocalProductNotFound
-	} else if rlprod := rprod.LocalProduct; rlprod == nil {
+	if rlprod := p.Product; rlprod == nil {
 		return ErrRemoteLocalProductNotFound
 	} else {
 		rlprod.Nodes = models.Nodes{}
@@ -100,9 +109,7 @@ func (p *LocalProduct) AddTopNodes(topNodes models.Nodes, replace bool) error {
 		}
 	}
 
-	if rprod := p.Product; rprod == nil {
-		return ErrRemoteLocalProductNotFound
-	} else if rlprod := rprod.LocalProduct; rlprod == nil {
+	if rlprod := p.Product; rlprod == nil {
 		return ErrRemoteLocalProductNotFound
 	} else if len(rlprod.Nodes) == 0 {
 		for _, tnode := range topNodes {

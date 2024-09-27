@@ -9,8 +9,8 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/sika365/admin-tools/context"
-	"github.com/sika365/admin-tools/pkg/client"
 	"github.com/sika365/admin-tools/pkg/file"
+	"github.com/sika365/admin-tools/service/client"
 )
 
 type Logic interface {

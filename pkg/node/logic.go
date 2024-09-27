@@ -7,8 +7,8 @@ import (
 	"github.com/alifakhimi/simple-utils-go/simscheme"
 
 	"github.com/sika365/admin-tools/context"
-	"github.com/sika365/admin-tools/pkg/client"
 	"github.com/sika365/admin-tools/pkg/excel"
+	"github.com/sika365/admin-tools/service/client"
 )
 
 type Logic interface {

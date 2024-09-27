@@ -21,8 +21,7 @@ type ProductRecord struct {
 
 func (pr *ProductRecord) BeforeCreate(tx *gorm.DB) error {
 	if lp := pr.LocalProduct; lp == nil {
-	} else if rp := lp.Product; rp == nil {
-	} else if rlp := rp.LocalProduct; rlp == nil {
+	} else if rlp := lp.Product; rlp == nil {
 	} else if len(rlp.Tags) > 0 {
 		rlp.Tags = nil
 	}

@@ -313,13 +313,6 @@ func (p *WpTermTaxonomy) GetAttachments() (cover *models.Image, gallery models.I
 	return
 }
 
-func (p *WpPost) SetLocalProduct(product *models.Product) *product.LocalProduct {
-	if database.IsValid(product.ID) {
-
-	}
-	return nil
-}
-
 func (p *WpPost) ToProduct(
 	group *models.ProductGroup,
 	cover *models.Image,
@@ -337,20 +330,20 @@ func (p *WpPost) ToProduct(
 
 	return &models.Product{
 		LocalProduct: &models.LocalProduct{
-			CommonTableFields: models.CommonTableFields{
-				Description: p.PostContent,
-				Active:      simutils.SetToNilIfZeroValue(true),
-			},
 			AppName:       p.PostTitle,
 			SameNameInPos: new(bool),
 			AllBarcodes:   barcodes.String(),
 			Barcodes:      barcodes,
 			Excerpt:       p.PostExcerpt,
+			Description:   p.PostContent,
 			// CoverID: cover.ID.ToNullPID(),
 			Cover:          cover,
 			Images:         gallery,
 			ProductGroupID: productGroupID,
 			Slug:           p.PostName,
+			AdditionalModel: models.AdditionalModel{
+				Active: simutils.SetToNilIfZeroValue(true),
+			},
 		},
 	}
 }

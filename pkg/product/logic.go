@@ -14,9 +14,9 @@ import (
 
 	"github.com/sika365/admin-tools/context"
 	"github.com/sika365/admin-tools/pkg/category"
-	"github.com/sika365/admin-tools/pkg/client"
 	"github.com/sika365/admin-tools/pkg/excel"
 	"github.com/sika365/admin-tools/pkg/image"
+	"github.com/sika365/admin-tools/service/client"
 )
 
 type Logic interface {
@@ -100,24 +100,24 @@ func (l *logic) UpdateNodes(ctx *context.Context, prodRec *ProductRecord) (err e
 func (l *logic) UpdateImage(ctx *context.Context, req *SyncByImageRequest, imgs image.LocalImages, prodRec *ProductRecord) (err error) {
 	// Is the image cover or for gallery?
 	// Retrieve product by barcode
-	if prd, err := l.repo.ReadByBarcode(ctx,
+	if prodRec, err := l.repo.ReadByBarcode(ctx,
 		l.conn.DB.WithContext(ctx.Request().Context()),
 		prodRec,
 		ctx.QueryParams(),
 	); err != nil {
 		logrus.Warnf("product.logic.SyncByImages > product.repo.ReadByBarcode error: %v", err)
 		return err
-	} else if err := l.SetImages(ctx, req, prd, imgs); err != nil {
+	} else if err := l.SetImages(ctx, req, prodRec, imgs); err != nil {
 		logrus.Warnf("product.logic.SyncByImages > product.SetImage error: %v", err)
 		return err
 	} else if err := l.repo.UpdateImages(ctx,
 		l.conn.DB.WithContext(ctx.Request().Context()),
-		prd.LocalProduct,
+		prodRec.LocalProduct,
 		nil); err != nil {
 		logrus.Warnf("product.logic.SyncByImages > product.repo.Update error: %v", err)
 		return err
 	} else {
-		logrus.Infof("%s Updated", prd.Barcode)
+		logrus.Infof("%s Updated", prodRec.Barcode)
 		return nil
 	}
 }
@@ -341,20 +341,20 @@ func (l *logic) SetImages(_ *context.Context, req *SyncByImageRequest, rec *Prod
 	err := ErrProductNoChange
 
 	lprod := rec.LocalProduct
-	rprod := lprod.Product
+	rlprod := lprod.Product
 
 	if req.ReplaceGallery &&
-		rprod.LocalProduct != nil &&
-		len(rprod.LocalProduct.Images) > 0 {
-		clear(rprod.Images)
-		rprod.Images = nil
+		rlprod != nil &&
+		len(rlprod.Images) > 0 {
+		clear(rlprod.Images)
+		rlprod.Images = nil
 	}
 
 	for _, limg := range limages {
 		// TODO if image is cover then set cover is true else add to gallery
 		if (req.ReplaceCover && !lprod.CoverSet) ||
 			((!lprod.CoverID.IsValid() && lprod.Cover == nil) &&
-				(!req.IgnoreCoverIfEmpty && !rprod.CoverID.IsValid())) {
+				(!req.IgnoreCoverIfEmpty && !rlprod.CoverID.IsValid())) {
 			// product.Cover = &ProductImage{
 			// 	ImageID:   img.ID,
 			// 	Image:     img,
@@ -363,7 +363,8 @@ func (l *logic) SetImages(_ *context.Context, req *SyncByImageRequest, rec *Prod
 			// product.CoverID, _ = img.ID.ToNullPID()
 			lprod.Cover = limg
 			lprod.CoverID, _ = limg.ID.ToNullPID()
-			rprod.CoverID, _ = limg.ImageID.ToNullPID()
+			rlprod.Cover = limg.Image
+			rlprod.CoverID, _ = limg.ImageID.ToNullPID()
 			lprod.CoverSet = true
 		} else if req.ReplaceGallery || !req.IgnoreAddToGallery {
 			lprod.Gallery = append(lprod.Gallery, &ProductImage{
@@ -371,12 +372,12 @@ func (l *logic) SetImages(_ *context.Context, req *SyncByImageRequest, rec *Prod
 				LocalImage:     limg,
 				LocalProductID: lprod.ID,
 			})
-			rprod.Images = append(rprod.Images, &models.Imagable{
+			rlprod.Images = append(rlprod.Images, &models.Imagable{
 				ImageID: limg.ID,
 				Image:   limg.Image,
 			})
 		} else {
-			logrus.Infof("no chanes %s", rprod.LocalProduct.Barcodes)
+			logrus.Infof("no chanes %s", rlprod.Barcodes)
 			continue
 		}
 

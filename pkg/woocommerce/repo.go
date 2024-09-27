@@ -4,7 +4,7 @@ import (
 	"net/url"
 
 	"github.com/sika365/admin-tools/context"
-	"github.com/sika365/admin-tools/pkg/client"
+	"github.com/sika365/admin-tools/service/client"
 	"github.com/sika365/admin-tools/utils"
 	"gorm.io/gorm"
 )

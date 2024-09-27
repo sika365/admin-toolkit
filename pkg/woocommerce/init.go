@@ -5,10 +5,10 @@ import (
 	"github.com/alifakhimi/simple-utils-go/simscheme"
 
 	"github.com/sika365/admin-tools/pkg/category"
-	"github.com/sika365/admin-tools/pkg/client"
 	"github.com/sika365/admin-tools/pkg/node"
 	"github.com/sika365/admin-tools/pkg/product"
 	"github.com/sika365/admin-tools/registrar"
+	"github.com/sika365/admin-tools/service/client"
 )
 
 const (

@@ -11,9 +11,9 @@ import (
 
 	"github.com/sika365/admin-tools/context"
 	"github.com/sika365/admin-tools/pkg/category"
-	"github.com/sika365/admin-tools/pkg/client"
 	"github.com/sika365/admin-tools/pkg/node"
 	"github.com/sika365/admin-tools/pkg/product"
+	"github.com/sika365/admin-tools/service/client"
 )
 
 type Logic interface {

@@ -7,14 +7,15 @@ import (
 	"regexp"
 
 	"gitlab.sikapp.ir/sikatech/eshop/eshop-sdk-go-v1/database"
+	"gitlab.sikapp.ir/sikatech/eshop/eshop-sdk-go-v1/helpers"
 	"gitlab.sikapp.ir/sikatech/eshop/eshop-sdk-go-v1/models"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 
 	simutils "github.com/alifakhimi/simple-utils-go"
 	"github.com/sika365/admin-tools/context"
-	"github.com/sika365/admin-tools/pkg/client"
 	"github.com/sika365/admin-tools/pkg/image"
+	"github.com/sika365/admin-tools/service/client"
 	"github.com/sika365/admin-tools/utils"
 	"github.com/sirupsen/logrus"
 )
@@ -46,6 +47,7 @@ func newRepo(client *client.Client) (Repo, error) {
 	return r, nil
 }
 
+// CreateProductGroup ...
 func (i *repo) CreateProductGroup(ctx *context.Context, db *gorm.DB, lprdgrp *LocalProductGroup) error {
 	if lprdgrp == nil {
 		return nil
@@ -56,65 +58,31 @@ func (i *repo) CreateProductGroup(ctx *context.Context, db *gorm.DB, lprdgrp *Lo
 	}
 }
 
-func (i *repo) Save(ctx *context.Context, db *gorm.DB, products LocalProducts) error {
-	for _, prd := range products {
-		if err := db.Save(prd).Error; err != nil {
-			return err
-		} else {
-			return nil
-		}
-	}
-	return nil
-}
-
-// Create ...
-func (i *repo) Create(ctx *context.Context, db *gorm.DB, products LocalProducts) error {
-	if len(products) == 0 {
-		return nil
-	} else if err := db.CreateInBatches(products, 100).Error; err != nil {
-		return err
-	} else {
-		return nil
-	}
-}
-
 // Create stores product records
 func (i *repo) CreateRecord(ctx *context.Context, db *gorm.DB, prodRecs ProductRecords) error {
 	for _, prodRec := range prodRecs {
-		if prodRec.LocalProduct != nil && prodRec.LocalProduct.Product != nil &&
-			(prodRec.LocalProduct.Product.LocalProduct == nil ||
-				!database.IsValid(prodRec.LocalProduct.Product.ProductStock.ProductID)) {
-			// Register product
-			if prd, err := i.client.CreateProduct(
+		if prodRec.LocalProduct != nil &&
+			(prodRec.LocalProduct.Product == nil ||
+				!database.IsValid(prodRec.LocalProduct.Product.ID)) {
+			if prd := ToProduct(prodRec.LocalProduct); prd == nil {
+				return ErrRemoteProductNotFound
+			} else if prd, err := i.client.CreateProduct( // Register product
 				ctx,
-				prodRec.LocalProduct.Product,
+				prd,
 			); err != nil {
 				return err
-			} else {
-				prodRec.LocalProduct.Product = prd
+			} else if err := helpers.JSONCopy(prd, prodRec.LocalProduct.Product); err != nil {
+				return err
 			}
 		}
 	}
 
 	if len(prodRecs) == 0 {
 		return nil
-	} else if err := db.CreateInBatches(prodRecs, 100).Error; err != nil {
+	} else if err := db.CreateInBatches(prodRecs, 10).Error; err != nil {
 		return err
-	} else {
-		return nil
 	}
-}
-
-// Read reads products with filters
-func (i *repo) ReadProductRecords(ctx *context.Context, db *gorm.DB, filters url.Values) (products ProductRecords, err error) {
-	var stored ProductRecords
-	if err = utils.
-		BuildGormQuery(ctx, db, filters).
-		Find(&stored).Error; err != nil {
-		return nil, err
-	} else {
-		return stored, nil
-	}
+	return nil
 }
 
 // Read reads products with filters
@@ -220,11 +188,9 @@ func (i *repo) ReadByBarcode(ctx *context.Context, db *gorm.DB, rec *ProductReco
 				return nil
 			} else {
 				rprod := rec.LocalProduct.Product
-				rprod.ID = p.ID
-				rprod.LocalProduct.ID = p.LocalProduct.ID
-				rprod.LocalProduct.StoreID = p.ProductStock.StoreID
-				rprod.ProductStock = p.ProductStock
-				rprod.LocalProduct.ProductStocks = p.ProductStocks
+				rprod.ID = p.LocalProduct.ID
+				rprod.StoreID = p.ProductStock.StoreID
+				rprod.ProductStocks = p.ProductStocks
 				return nil
 			}
 		}(rec, product); err != nil {
@@ -254,8 +220,9 @@ func (i *repo) ReadImagesWithoutProduct(ctx *context.Context, db *gorm.DB, filte
 		InnerJoins("File").
 		InnerJoins("Image").
 		Where("local_images.image_id not in (?)",
-			db.Table("viw_products").Select("viw_products.cover_id").
-				Where("viw_products.cover_id=local_images.image_id"),
+			db.Model(&models.LocalProduct{}).
+				Select("products.cover_id").
+				Where("products.cover_id=local_images.image_id"),
 		).
 		Order("local_images.id asc").
 		// Joins("LEFT JOIN products ON products.cover_id = local_images.image_id AND products.deleted_at IS NULL").
@@ -326,8 +293,10 @@ func (i *repo) Update(ctx *context.Context, db *gorm.DB, lprod *LocalProduct, fi
 	if lprod.Product == nil {
 		logrus.Warnf("local product id %s remote product not found", lprod.ID)
 		return nil
-	} else if lprod.Product, err = i.client.PutProduct(ctx, lprod.Product); err != nil {
+	} else if prd, err := i.client.PutProduct(ctx, ToProduct(lprod)); err != nil {
 		return err
+	} else if lprod.Product = prd.LocalProduct; lprod.Product == nil {
+		return ErrRemoteProductNotFound
 	} else if err := db.
 		Model(&LocalProduct{
 			CommonTableFields: models.CommonTableFields{Model: database.Model{ID: lprod.ID}},
@@ -350,7 +319,7 @@ func (i *repo) Update(ctx *context.Context, db *gorm.DB, lprod *LocalProduct, fi
 		Unscoped().Replace(lprod.Product.Nodes); err != nil {
 		return err
 	} else {
-		logrus.Infof("%s Updated", lprod.Product.LocalProduct.Barcodes)
+		logrus.Infof("%s Updated", lprod.Product.Barcodes)
 		return nil
 	}
 }
@@ -358,4 +327,40 @@ func (i *repo) Update(ctx *context.Context, db *gorm.DB, lprod *LocalProduct, fi
 // Delete implements Repo.
 func (i *repo) Delete(ctx *context.Context, db *gorm.DB, id simutils.PID, filters url.Values) error {
 	panic("unimplemented")
+}
+
+// Unused
+func (i *repo) Save(ctx *context.Context, db *gorm.DB, products LocalProducts) error {
+	for _, prd := range products {
+		if err := db.Save(prd).Error; err != nil {
+			return err
+		} else {
+			return nil
+		}
+	}
+	return nil
+}
+
+// Unused
+func (i *repo) Create(ctx *context.Context, db *gorm.DB, products LocalProducts) error {
+	if len(products) == 0 {
+		return nil
+	} else if err := db.CreateInBatches(products, 100).Error; err != nil {
+		return err
+	} else {
+		return nil
+	}
+}
+
+// Read reads products with filters
+// Unused
+func (i *repo) ReadProductRecords(ctx *context.Context, db *gorm.DB, filters url.Values) (products ProductRecords, err error) {
+	var stored ProductRecords
+	if err = utils.
+		BuildGormQuery(ctx, db, filters).
+		Find(&stored).Error; err != nil {
+		return nil, err
+	} else {
+		return stored, nil
+	}
 }
