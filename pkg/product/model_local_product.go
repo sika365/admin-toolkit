@@ -4,6 +4,7 @@ import (
 	"gitlab.sikapp.ir/sikatech/eshop/eshop-sdk-go-v1/database"
 	"gitlab.sikapp.ir/sikatech/eshop/eshop-sdk-go-v1/models"
 
+	simutils "github.com/alifakhimi/simple-utils-go"
 	"github.com/sika365/admin-tools/pkg/image"
 )
 
@@ -44,14 +45,20 @@ func FromProduct(prd *models.Product) *LocalProduct {
 	p := &LocalProduct{Product: prd.LocalProduct}
 	p.Product.ID = prd.ID
 	p.Product.StoreID = prd.StoreID
+	if p.Product.Slug == "" {
+		p.Product.Slug = simutils.MakeSlug(prd.GetName()).ToString()
+	}
 	return p
 }
 
 func ToProduct(prd *LocalProduct) *models.Product {
 	product := prd.Product
-	product.CoverID = database.ToNullPID(prd.Cover.ImageID)
-	product.Images = make(models.Imagables, 0, len(prd.Gallery))
 
+	if prd.Cover != nil {
+		product.CoverID = database.ToNullPID(prd.Cover.ImageID)
+	}
+
+	product.Images = make(models.Imagables, 0, len(prd.Gallery))
 	for _, img := range prd.Gallery {
 		found := false
 		for _, i := range product.Images {

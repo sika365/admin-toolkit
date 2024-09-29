@@ -4,23 +4,22 @@ go 1.22.3
 
 require (
 	github.com/alifakhimi/simple-service-go v0.0.0-20240908152144-55487407ac8c
-	github.com/alifakhimi/simple-utils-go v0.0.8
-	github.com/alifakhimi/simple-utils-go/simrest v0.0.0-20240908081924-71833279c1a0
+	github.com/alifakhimi/simple-utils-go v0.0.9
+	github.com/alifakhimi/simple-utils-go/simrest v0.0.0-20240929072630-4530ccd4c693
 	github.com/alifakhimi/simple-utils-go/simscheme v0.0.0-20240831155141-8f151ad65a1e
 	github.com/alitto/pond v1.9.1
 	github.com/dustin/go-humanize v1.0.1
 	github.com/gabriel-vasile/mimetype v1.4.4
-	github.com/go-resty/resty/v2 v2.14.0
-	github.com/gosimple/slug v1.14.0
+	github.com/go-resty/resty/v2 v2.15.3
 	github.com/labstack/echo/v4 v4.12.0
 	github.com/mattn/go-sqlite3 v1.14.23
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cast v1.7.0
 	github.com/xuri/excelize/v2 v2.8.1
 	gitlab.sikapp.ir/sikatech/eshop/eshop-sdk-go-v1 v1.12.23-dev
-	golang.org/x/exp v0.0.0-20240904232852-e7e105dedf7e
+	golang.org/x/exp v0.0.0-20240909161429-701f63a606c0
 	gorm.io/driver/sqlite v1.5.6
-	gorm.io/gorm v1.25.11
+	gorm.io/gorm v1.25.12
 )
 
 require (
@@ -41,12 +40,11 @@ require (
 	github.com/golang-jwt/jwt v3.2.2+incompatible // indirect
 	github.com/golang-sql/civil v0.0.0-20220223132316-b832511892a9 // indirect
 	github.com/golang-sql/sqlexp v0.1.0 // indirect
-	github.com/gosimple/unidecode v1.0.1 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect
-	github.com/jackc/pgx/v5 v5.7.0 // indirect
-	github.com/jackc/puddle/v2 v2.2.1 // indirect
+	github.com/jackc/pgx/v5 v5.7.1 // indirect
+	github.com/jackc/puddle/v2 v2.2.2 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.5 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
@@ -86,12 +84,12 @@ require (
 	golang.org/x/sys v0.25.0 // indirect
 	golang.org/x/text v0.18.0 // indirect
 	golang.org/x/time v0.6.0 // indirect
-	golang.org/x/tools v0.24.0 // indirect
+	golang.org/x/tools v0.25.0 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	gorm.io/driver/mysql v1.5.7 // indirect
 	gorm.io/driver/postgres v1.5.9 // indirect
 	gorm.io/driver/sqlserver v1.5.3 // indirect
-	gorm.io/plugin/dbresolver v1.5.2 // indirect
+	gorm.io/plugin/dbresolver v1.5.3 // indirect
 )

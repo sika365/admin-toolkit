@@ -119,7 +119,7 @@ func (i *repo) FirstOrCreateLocalProuctGroup(ctx *context.Context, db *gorm.DB, 
 		// Retrieve from remote
 		if rprdgrp, err = i.client.GetProductGroupBySlug(
 			ctx,
-			simutils.MakeSlug(reqLProductGroup.ProductGroup.Slug),
+			simutils.Slug(reqLProductGroup.ProductGroup.Slug),
 		); err != nil && !errors.Is(err, models.ErrNotFound) {
 			return nil, err
 		} else if errors.Is(err, models.ErrNotFound) {

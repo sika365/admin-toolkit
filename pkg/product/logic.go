@@ -7,7 +7,6 @@ import (
 	simutils "github.com/alifakhimi/simple-utils-go"
 	"github.com/alifakhimi/simple-utils-go/simscheme"
 	"github.com/alitto/pond"
-	"github.com/gosimple/slug"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cast"
 	"gitlab.sikapp.ir/sikatech/eshop/eshop-sdk-go-v1/models"
@@ -318,7 +317,7 @@ func (l *logic) SyncBySpreadSheets(ctx *context.Context) (*simscheme.Document, e
 			)
 
 			if req.ProductHeaderMap.CategorySlug != "" {
-				prodRec.CategorySlug = slug.Make(rec[header[req.ProductHeaderMap.CategorySlug]])
+				prodRec.CategorySlug = simutils.MakeSlug(rec[header[req.ProductHeaderMap.CategorySlug]]).ToString()
 			}
 
 			pool.Submit(func() {
