@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/url"
 	"regexp"
+	"sync"
 
 	"gitlab.sikapp.ir/sikatech/eshop/eshop-sdk-go-v1/database"
 	"gitlab.sikapp.ir/sikatech/eshop/eshop-sdk-go-v1/helpers"
@@ -38,6 +39,7 @@ type Repo interface {
 
 type repo struct {
 	client *client.Client
+	dbLock sync.Mutex
 }
 
 func newRepo(client *client.Client) (Repo, error) {
@@ -76,6 +78,9 @@ func (i *repo) CreateRecord(ctx *context.Context, db *gorm.DB, prodRecs ProductR
 			}
 		}
 	}
+
+	i.dbLock.Lock()
+	defer i.dbLock.Unlock()
 
 	if len(prodRecs) == 0 {
 		return nil
@@ -297,7 +302,12 @@ func (i *repo) Update(ctx *context.Context, db *gorm.DB, lprod *LocalProduct, fi
 		return err
 	} else if lprod.Product = prd.LocalProduct; lprod.Product == nil {
 		return ErrRemoteProductNotFound
-	} else if err := db.
+	}
+
+	i.dbLock.Lock()
+	defer i.dbLock.Unlock()
+
+	if err := db.
 		Model(&LocalProduct{
 			CommonTableFields: models.CommonTableFields{Model: database.Model{ID: lprod.ID}},
 		}).

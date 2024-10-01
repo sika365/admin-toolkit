@@ -163,7 +163,9 @@ func (c *Client) PutProduct(ctx *context.Context, prd *models.Product) (*models.
 		}).Errorln(models.ErrNotFound)
 		return nil, models.ErrNotFound
 	} else {
-		return products[0], nil
+		prod := products[0]
+		prd.LocalProduct.PIDModel = prd.PIDModel
+		return prod, nil
 	}
 }
 

@@ -63,6 +63,7 @@ func (svc *Service) Init() error {
 		Init(); err != nil {
 		return err
 	} else {
+		// db.DB.Exec("PRAGMA journal_mode=WAL;")
 		logrus.Infoln("Service initialization done.")
 		return nil
 	}

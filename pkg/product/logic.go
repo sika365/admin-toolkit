@@ -237,7 +237,7 @@ func (l *logic) SyncByImages(ctx *context.Context, req *SyncByImageRequest, filt
 		err              error
 		offset           = 0
 		limit            = 1000
-		batchSize        = 10
+		batchSize        = 1
 		mimages          image.MapImages
 		mapBarcodeImages = make(map[string]image.LocalImages)
 		prodRecDoc       = simscheme.
