@@ -58,12 +58,12 @@ func (r *rest) SyncByImages(ectx echo.Context) error {
 		return err
 	} else if filters := ctx.QueryParams(); false {
 		return nil
-	} else if products, err := r.logic.SyncByImages(ctx, &req, filters); err != nil {
+	} else if prodRecs, err := r.logic.SyncByImages(ctx, &req, filters); err != nil {
 		return err
 	} else {
 		return simutils.ReplyTemplate(ctx, http.StatusOK, nil,
-			&SyncByImagesResponse{Data: products},
-			simutils.CreatePaginateTemplate(len(products.Nodes), 0, len(products.Nodes)),
+			&SyncByImagesResponse{},
+			simutils.CreatePaginateTemplate(len(prodRecs), 0, len(prodRecs)),
 		)
 	}
 }
@@ -71,12 +71,12 @@ func (r *rest) SyncByImages(ectx echo.Context) error {
 func (r *rest) SyncBySpreadSheets(ctx echo.Context) error {
 	if ctx, err := context.Binder(ctx, &SyncBySpreadSheetsRequest{}); err != nil {
 		return err
-	} else if products, err := r.logic.SyncBySpreadSheets(ctx); err != nil {
+	} else if prodRecs, err := r.logic.SyncBySpreadSheets(ctx); err != nil {
 		return err
 	} else {
 		return simutils.ReplyTemplate(ctx, http.StatusOK, nil,
-			&SyncBySpreadSheetsResponse{Data: products},
-			simutils.CreatePaginateTemplate(len(products.Nodes), 0, len(products.Nodes)),
+			&SyncBySpreadSheetsResponse{},
+			simutils.CreatePaginateTemplate(len(prodRecs), 0, len(prodRecs)),
 		)
 	}
 }

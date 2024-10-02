@@ -30,7 +30,7 @@ type Repo interface {
 	FirstOrCreateLocalProuctGroup(ctx *context.Context, db *gorm.DB, reqLProductGroup *LocalProductGroup) (*LocalProductGroup, error)
 	ReadProductRecords(ctx *context.Context, db *gorm.DB, filters url.Values) (products ProductRecords, err error)
 	ReadByBarcode(ctx *context.Context, db *gorm.DB, rec *ProductRecord, filters url.Values) (*ProductRecord, error)
-	ReadImagesWithoutProduct(ctx *context.Context, db *gorm.DB, filters url.Values) (mimages image.MapImages, err error)
+	ReadImagesWithoutProduct(ctx *context.Context, db *gorm.DB, filters url.Values) (mimages image.LocalImages, err error)
 	UpdateImages(ctx *context.Context, db *gorm.DB, product *LocalProduct, filters url.Values) error
 	UpdateNodes(ctx *context.Context, db *gorm.DB, prdRec *ProductRecord, topNodes models.Nodes, filters url.Values) error
 	Update(ctx *context.Context, db *gorm.DB, product *LocalProduct, filters url.Values) error
@@ -218,8 +218,7 @@ func (i *repo) ReadByBarcode(ctx *context.Context, db *gorm.DB, rec *ProductReco
 	}
 }
 
-func (i *repo) ReadImagesWithoutProduct(ctx *context.Context, db *gorm.DB, filters url.Values) (mimages image.MapImages, err error) {
-	var images image.LocalImages
+func (i *repo) ReadImagesWithoutProduct(ctx *context.Context, db *gorm.DB, filters url.Values) (images image.LocalImages, err error) {
 	if err = utils.
 		BuildGormQuery(ctx, db, filters).
 		InnerJoins("File").
@@ -249,7 +248,7 @@ func (i *repo) ReadImagesWithoutProduct(ctx *context.Context, db *gorm.DB, filte
 				barcodeImages = append(barcodeImages, img)
 			}
 		}
-		return image.NewMapImages(barcodeImages...), nil
+		return barcodeImages, nil
 	}
 }
 

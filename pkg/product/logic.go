@@ -5,7 +5,6 @@ import (
 	"net/url"
 
 	simutils "github.com/alifakhimi/simple-utils-go"
-	"github.com/alifakhimi/simple-utils-go/simscheme"
 	"github.com/alitto/pond"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cast"
@@ -22,8 +21,8 @@ type Logic interface {
 	Find(ctx *context.Context, req *SyncByImageRequest, filters url.Values) (products LocalProducts, err error)
 	Save(ctx *context.Context, reqPrdRec *ProductRecord) (prdRec *ProductRecord, err error)
 	FindOrCreateProductGroup(ctx *context.Context, lprdgrp *LocalProductGroup) (*LocalProductGroup, error)
-	SyncByImages(ctx *context.Context, req *SyncByImageRequest, filters url.Values) (*simscheme.Document, error)
-	SyncBySpreadSheets(ctx *context.Context) (*simscheme.Document, error)
+	SyncByImages(ctx *context.Context, req *SyncByImageRequest, filters url.Values) (ProductRecords, error)
+	SyncBySpreadSheets(ctx *context.Context) (ProductRecords, error)
 	SetImages(ctx *context.Context, req *SyncByImageRequest, rec *ProductRecord, limages image.LocalImages) error
 	MatchBarcode(ctx *context.Context, req *SyncByImageRequest, barcode string, productNodes models.Nodes) (*models.Product, error)
 }
@@ -232,22 +231,18 @@ func (l *logic) Save(ctx *context.Context, reqPrdRec *ProductRecord) (prdRec *Pr
 	return prdRec, nil
 }
 
-func (l *logic) SyncByImages(ctx *context.Context, req *SyncByImageRequest, filters url.Values) (*simscheme.Document, error) {
+func (l *logic) SyncByImages(ctx *context.Context, req *SyncByImageRequest, filters url.Values) (prdRecs ProductRecords, err error) {
 	var (
-		err              error
 		offset           = 0
 		limit            = 1000
 		batchSize        = 1
-		mimages          image.MapImages
+		images           image.LocalImages
 		mapBarcodeImages = make(map[string]image.LocalImages)
-		prodRecDoc       = simscheme.
-					GetSchema().
-					AddNewDocumentWithType(&ProductRecord{})
 	)
 
 	// Get barcodes from image's title if synced and there aren't any related product
 	for {
-		if mimages, err = l.repo.ReadImagesWithoutProduct(
+		if images, err = l.repo.ReadImagesWithoutProduct(
 			ctx,
 			l.conn.DB.WithContext(ctx.Request().Context()),
 			url.Values{
@@ -255,12 +250,12 @@ func (l *logic) SyncByImages(ctx *context.Context, req *SyncByImageRequest, filt
 				"offset": []string{cast.ToString(offset)},
 			},
 		); err != nil {
-			return prodRecDoc, err
-		} else if len(mimages) == 0 {
+			return nil, err
+		} else if len(images) == 0 {
 			break
 		}
 
-		for _, img := range mimages {
+		for _, img := range images {
 			// TODO check barcode pattern
 			mapBarcodeImages[img.Image.Title] = append(mapBarcodeImages[img.Image.Title], img)
 		}
@@ -276,30 +271,27 @@ func (l *logic) SyncByImages(ctx *context.Context, req *SyncByImageRequest, filt
 				if err := l.UpdateImage(ctx, req, imgs, prodRec); err != nil {
 					return
 				}
+
+				prdRecs = append(prdRecs, prodRec)
 			})
 
-			prodRecDoc.AddNode(prodRec)
 		}
 
 		pool.StopAndWait()
 		offset += limit
 	}
 
-	return prodRecDoc, nil
+	return prdRecs, nil
 }
 
-func (l *logic) SyncBySpreadSheets(ctx *context.Context) (*simscheme.Document, error) {
+func (l *logic) SyncBySpreadSheets(ctx *context.Context) (prodRecs ProductRecords, err error) {
 	var (
-		prodRecDoc = simscheme.
-				GetSchema().
-				AddNewDocumentWithType(&ProductRecord{})
-
 		batchSize = 10
 		pool      = pond.New(batchSize, 0)
 	)
 
 	if req, err := context.GetRequestModel[*SyncBySpreadSheetsRequest](ctx); err != nil {
-		return prodRecDoc, err
+		return nil, err
 	} else if req.ProductHeaderMap.Barcode == "" {
 		return nil, nil
 	} else if csvFiles, err := excel.LoadExcels(ctx, req.Root, req.MaxDepth); err != nil {
@@ -324,15 +316,15 @@ func (l *logic) SyncBySpreadSheets(ctx *context.Context) (*simscheme.Document, e
 				if err := l.UpdateNodes(ctx, prodRec); err != nil {
 					return
 				}
-			})
 
-			prodRecDoc.AddNode(prodRec)
+				prodRecs = append(prodRecs, prodRec)
+			})
 		},
 	); err != nil {
 		return nil, err
 	} else {
 		pool.StopAndWait()
-		return prodRecDoc, nil
+		return nil, nil
 	}
 }
 
