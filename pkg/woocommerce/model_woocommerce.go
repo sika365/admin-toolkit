@@ -3,6 +3,8 @@ package woocommerce
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
+	"net/url"
 	"strings"
 	"time"
 
@@ -165,9 +167,14 @@ func (p *WpPost) GetCategoryRecords() category.CategoryRecords {
 			continue
 		}
 
+		decodedSlug, err := url.QueryUnescape(tt.Term.Slug)
+		if err != nil {
+			fmt.Println("Error decoding string:", err)
+			continue
+		}
 		catRecNode := catRecDoc.GetNode(
 			&category.CategoryRecord{
-				Slug: simutils.Slug(tt.Term.Slug),
+				Slug: simutils.Slug(decodedSlug),
 			},
 		)
 

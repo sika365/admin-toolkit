@@ -53,7 +53,7 @@ func newRepo(client *client.Client) (Repo, error) {
 func (i *repo) CreateProductGroup(ctx *context.Context, db *gorm.DB, lprdgrp *LocalProductGroup) error {
 	if lprdgrp == nil {
 		return nil
-	} else if err := db.Create(lprdgrp).Error; err != nil {
+	} else if err := db.Omit(clause.Associations).Create(lprdgrp).Error; err != nil {
 		return err
 	} else {
 		return nil
@@ -84,7 +84,7 @@ func (i *repo) CreateRecord(ctx *context.Context, db *gorm.DB, prodRecs ProductR
 
 	if len(prodRecs) == 0 {
 		return nil
-	} else if err := db.CreateInBatches(prodRecs, 10).Error; err != nil {
+	} else if err := db.Omit(clause.Associations).CreateInBatches(prodRecs, 10).Error; err != nil {
 		return err
 	}
 	return nil
@@ -162,7 +162,9 @@ func (i *repo) FirstOrCreateLocalProuctGroup(ctx *context.Context, db *gorm.DB, 
 // ReadByBarcode reads products bye barcode
 func (i *repo) ReadByBarcode(ctx *context.Context, db *gorm.DB, rec *ProductRecord, filters url.Values) (*ProductRecord, error) {
 	var stored ProductRecord
-	if err := db.
+	var product *models.Product
+
+	err := db.
 		Preload("LocalProduct").
 		Preload("LocalProduct.Cover").
 		Preload("LocalProduct.Gallery").
@@ -173,22 +175,35 @@ func (i *repo) ReadByBarcode(ctx *context.Context, db *gorm.DB, rec *ProductReco
 		Preload("LocalCategory.Category").
 		Preload("LocalCategory.Category.Nodes").
 		// Preload("LocalCategory.Nodes").
-		Where("barcode = ?", rec.Barcode).
-		Take(&stored).Error; errors.Is(err, gorm.ErrRecordNotFound) ||
+		Where("barcode = ? AND category_slug = ? ", rec.Barcode, rec.CategorySlug).
+		Take(&stored).Error
+
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		logrus.WithFields(logrus.Fields{
+			"fn":             "Product.repo.ReadByBarcode",
+			"product_record": rec,
+		}).Errorln(err)
+		return nil, err
+	} else if errors.Is(err, gorm.ErrRecordNotFound) ||
 		stored.LocalProduct == nil ||
 		stored.LocalProduct.Product == nil {
-		// register from remote
-		if products, err := i.client.GetProductsByBarcode(ctx, rec.Barcode, filters); err != nil {
+
+		if err := db.Table("products").Where("all_barcodes = ?", fmt.Sprintf("%s;", rec.Barcode)).Take(&product).Error; err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, err
-		} else if product, err := models.MergeProductStocks(products); err != nil {
-			return nil, err
-		} else if err = func(rec *ProductRecord, p *models.Product) error {
+		} else if errors.Is(err, gorm.ErrRecordNotFound) {
+			// !if exsist
+			products, err := i.client.GetProductsByBarcode(ctx, rec.Barcode, filters)
+			if err != nil {
+				return nil, err
+			}
+			product, err = models.MergeProductStocks(products)
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		if err := func(rec *ProductRecord, p *models.Product) error {
 			if rec.LocalProduct == nil || rec.LocalProduct.Product == nil {
-				// logrus.WithFields(logrus.Fields{
-				// 	"barcode":        rec.Barcode,
-				// 	"product_record": rec,
-				// }).Errorln(ErrRemoteProductNotFound)
-				// return ErrRemoteProductNotFound
 				rec.LocalProduct = FromProduct(p)
 				return nil
 			} else {
@@ -200,22 +215,16 @@ func (i *repo) ReadByBarcode(ctx *context.Context, db *gorm.DB, rec *ProductReco
 			}
 		}(rec, product); err != nil {
 			return nil, err
-			// } else if rec.LocalProduct = FromProduct(product); rec.LocalProduct == nil {
-			// 	return nil, fmt.Errorf("nil local product")
-		} else if err := i.CreateRecord(ctx, db, ProductRecords{rec}); err != nil {
-			return nil, err
-		} else {
-			return rec, nil
 		}
-	} else if err != nil {
-		logrus.WithFields(logrus.Fields{
-			"fn":             "Product.repo.ReadByBarcode",
-			"product_record": rec,
-		}).Errorln(err)
-		return nil, err
-	} else {
-		return &stored, nil
+
+		err := i.CreateRecord(ctx, db, ProductRecords{rec})
+		if err != nil {
+			return nil, err
+		}
+		return rec, nil
 	}
+	return &stored, nil
+
 }
 
 func (i *repo) ReadImagesWithoutProduct(ctx *context.Context, db *gorm.DB, filters url.Values) (images image.LocalImages, err error) {
