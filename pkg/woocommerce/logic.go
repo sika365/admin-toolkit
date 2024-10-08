@@ -164,7 +164,6 @@ func (l *logic) SaveProduct(ctx *context.Context, post *WpPost, prd *models.Prod
 			logrus.Errorf("register product failed %v", err)
 			continue
 			// return nil, err
-
 		} else {
 			prdRecs = append(prdRecs, prdRec)
 		}

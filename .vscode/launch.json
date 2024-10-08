@@ -12,7 +12,7 @@
       "program": "${workspaceFolder}",
       "args": [
         "-c",
-        "./config.taghechian.json"
+        "config.json"
       ]
     }
   ]

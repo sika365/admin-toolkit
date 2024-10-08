@@ -30,6 +30,8 @@ github.com/alifakhimi/simple-service-go v0.0.0-20240908152144-55487407ac8c h1:pO
 github.com/alifakhimi/simple-service-go v0.0.0-20240908152144-55487407ac8c/go.mod h1:Nb0YUB228voj2AsbfrOpw3EZh8PF7dZbBDx7Nxdx8KA=
 github.com/alifakhimi/simple-utils-go v0.0.9 h1:y+DaH+0/2ruAwebJtkz8O5vdjwqOali2pONUweO0F/g=
 github.com/alifakhimi/simple-utils-go v0.0.9/go.mod h1:oyIVz9vRfapwCWR8CeKGe90z6N7itdDfSq7iU71fm0A=
+github.com/alifakhimi/simple-utils-go/simrest v0.0.0-20240929070023-26173af4e32e h1:p4wZ+UflBoZhG5j9fJjb7vknNXwBmQjLUOBJVzZCGNg=
+github.com/alifakhimi/simple-utils-go/simrest v0.0.0-20240929070023-26173af4e32e/go.mod h1:97PlaO48CeWJjK9B7y7F0zXGD6bU3yhRwMmTPnT5Lg4=
 github.com/alifakhimi/simple-utils-go/simrest v0.0.0-20240929072630-4530ccd4c693 h1:oNa9rvRNK4rFyGRcNMtDW6MEHiwonuV8Dho6M7mOEyU=
 github.com/alifakhimi/simple-utils-go/simrest v0.0.0-20240929072630-4530ccd4c693/go.mod h1:97PlaO48CeWJjK9B7y7F0zXGD6bU3yhRwMmTPnT5Lg4=
 github.com/alifakhimi/simple-utils-go/simscheme v0.0.0-20240831155141-8f151ad65a1e h1:N0ezoZtR83w7+oPD5dhEYn9KAlAcEWOY5dBaxyzfiCQ=
@@ -246,6 +248,8 @@ github.com/youmark/pkcs8 v0.0.0-20181117223130-1be2e3e5546d/go.mod h1:rHwXgn7Jul
 github.com/yuin/goldmark v1.1.27/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
 github.com/yuin/goldmark v1.2.1/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
 github.com/yuin/goldmark v1.4.13/go.mod h1:6yULJ656Px+3vBD8DxQVa3kxgyrAnzto9xy5taEt/CY=
+gitlab.sikapp.ir/sikatech/eshop/eshop-sdk-go-v1 v1.12.23-dev h1:skn3krbDDaWv+ccgH1A6PBc/kYokLNAOfDYnqmyI9Fg=
+gitlab.sikapp.ir/sikatech/eshop/eshop-sdk-go-v1 v1.12.23-dev/go.mod h1:fsthmbok5BI0rgciMerx1mTEiIFSNpgRcAg+VSVV1+w=
 gitlab.sikapp.ir/sikatech/eshop/eshop-sdk-go-v1 v1.12.25-dev h1:d8vqYwCQdo4u27hlU4cH8ZVJbcecqp0yPZPTdP1QdDw=
 gitlab.sikapp.ir/sikatech/eshop/eshop-sdk-go-v1 v1.12.25-dev/go.mod h1:fsthmbok5BI0rgciMerx1mTEiIFSNpgRcAg+VSVV1+w=
 go.mongodb.org/mongo-driver v1.11.4/go.mod h1:PTSz5yu21bkT/wXpkS7WR5f0ddqw5quethTUn9WM+2g=

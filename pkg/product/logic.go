@@ -139,7 +139,7 @@ func (l *logic) Save(ctx *context.Context, reqPrdRec *ProductRecord) (prdRec *Pr
 		// isChanged    = false
 	)
 
-	fmt.Printf("Running task for product => %v", reqPrdRec)
+	logrus.Infof("Running task for product => %v", reqPrdRec)
 
 	if reqPrdRec.CategorySlug != "" {
 		if catRecs, err := l.catRepo.ReadCategoryRecords(ctx,
@@ -177,13 +177,7 @@ func (l *logic) Save(ctx *context.Context, reqPrdRec *ProductRecord) (prdRec *Pr
 		}
 
 		if !found {
-			decodedSlug, err := url.QueryUnescape(rprd.Slug)
-			if err != nil {
-				fmt.Println("Error decoding string:", err)
-				continue
-			}
-			nodeSlug := fmt.Sprintf("%s-%s", topNode.Slug, decodedSlug)
-
+			nodeSlug := fmt.Sprintf("%s-%s", topNode.Slug, rprd.Slug)
 			rprd.Nodes = append(rprd.Nodes, &models.Node{
 				ParentID: &topNode.ID,
 				System:   new(bool),
