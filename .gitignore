@@ -24,6 +24,8 @@ go.work.sum
 *.db*
 config*\.json
 !config.sample.json
+tests*\.http
+!tests.sample.http
 \.tmp
 \.temp
 __debug*

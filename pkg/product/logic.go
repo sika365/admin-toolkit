@@ -61,11 +61,11 @@ func (l *logic) UpdateNodes(ctx *context.Context, prodRec *ProductRecord) (err e
 		topNodes models.Nodes
 	)
 
-	if prodRec.CategorySlug != "" {
+	if prodRec.CategorySlug.IsValid() {
 		if lcats, err := l.catRepo.Read(ctx,
 			l.conn.DB.WithContext(ctx.Request().Context()),
 			url.Values{
-				"slug": []string{prodRec.CategorySlug},
+				"slug": []string{prodRec.CategorySlug.ToString()},
 			},
 		); err != nil {
 			return err
@@ -139,13 +139,13 @@ func (l *logic) Save(ctx *context.Context, reqPrdRec *ProductRecord) (prdRec *Pr
 		// isChanged    = false
 	)
 
-	fmt.Printf("Running task for product => %v", reqPrdRec)
+	logrus.Infof("Running task for product => %v", reqPrdRec)
 
-	if reqPrdRec.CategorySlug != "" {
+	if reqPrdRec.CategorySlug.IsValid() {
 		if catRecs, err := l.catRepo.ReadCategoryRecords(ctx,
 			l.conn.DB.WithContext(ctx.Request().Context()),
 			url.Values{
-				"slug": []string{reqPrdRec.CategorySlug},
+				"slug": []string{reqPrdRec.CategorySlug.ToString()},
 			},
 		); err != nil {
 			return nil, err
@@ -179,16 +179,16 @@ func (l *logic) Save(ctx *context.Context, reqPrdRec *ProductRecord) (prdRec *Pr
 		if !found {
 			decodedSlug, err := url.QueryUnescape(rprd.Slug)
 			if err != nil {
-				fmt.Println("Error decoding string:", err)
+				logrus.Info("Error decoding string:", err)
 				continue
 			}
-			nodeSlug := fmt.Sprintf("%s-%s", topNode.Slug, decodedSlug)
+			nodeSlug := simutils.MakeSlug(fmt.Sprintf("%s-%s", topNode.Slug, decodedSlug))
 
 			rprd.Nodes = append(rprd.Nodes, &models.Node{
 				ParentID: &topNode.ID,
 				System:   new(bool),
-				Alias:    nodeSlug,
-				Slug:     nodeSlug,
+				Alias:    nodeSlug.ToString(),
+				Slug:     nodeSlug.ToString(),
 			})
 			// isChanged = true
 		}
@@ -314,8 +314,8 @@ func (l *logic) SyncBySpreadSheets(ctx *context.Context) (prodRecs ProductRecord
 				}
 			)
 
-			if req.ProductHeaderMap.CategorySlug != "" {
-				prodRec.CategorySlug = simutils.MakeSlug(rec[header[req.ProductHeaderMap.CategorySlug]]).ToString()
+			if req.ProductHeaderMap.CategorySlug.IsValid() {
+				prodRec.CategorySlug = simutils.MakeSlug(rec[header[req.ProductHeaderMap.CategorySlug.ToString()]])
 			}
 
 			pool.Submit(func() {

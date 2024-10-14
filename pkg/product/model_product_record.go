@@ -1,6 +1,7 @@
 package product
 
 import (
+	simutils "github.com/alifakhimi/simple-utils-go"
 	"github.com/sika365/admin-tools/pkg/category"
 	"gitlab.sikapp.ir/sikatech/eshop/eshop-sdk-go-v1/database"
 	"gitlab.sikapp.ir/sikatech/eshop/eshop-sdk-go-v1/models"
@@ -12,7 +13,7 @@ type ProductRecords []*ProductRecord
 type ProductRecord struct {
 	models.CommonTableFields
 	Barcode        string                  `json:"barcode,omitempty" sim:"primaryKey"`
-	CategorySlug   string                  `json:"category,omitempty" sim:"primaryKey"`
+	CategorySlug   simutils.Slug           `json:"category,omitempty" sim:"primaryKey"`
 	Title          string                  `json:"title,omitempty"`
 	LocalProductID database.PID            `json:"local_product_id,omitempty" sim:"primaryKey"`
 	LocalCategory  *category.LocalCategory `json:"local_category,omitempty" gorm:"foreignKey:CategorySlug;references:Slug"`

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/url"
 	"regexp"
+	"strings"
 	"sync"
 
 	"gitlab.sikapp.ir/sikatech/eshop/eshop-sdk-go-v1/database"
@@ -53,7 +54,7 @@ func newRepo(client *client.Client) (Repo, error) {
 func (i *repo) CreateProductGroup(ctx *context.Context, db *gorm.DB, lprdgrp *LocalProductGroup) error {
 	if lprdgrp == nil {
 		return nil
-	} else if err := db.Omit(clause.Associations).Create(lprdgrp).Error; err != nil {
+	} else if err := db.Create(lprdgrp).Error; err != nil {
 		return err
 	} else {
 		return nil
@@ -63,9 +64,10 @@ func (i *repo) CreateProductGroup(ctx *context.Context, db *gorm.DB, lprdgrp *Lo
 // Create stores product records
 func (i *repo) CreateRecord(ctx *context.Context, db *gorm.DB, prodRecs ProductRecords) error {
 	for _, prodRec := range prodRecs {
-		if prodRec.LocalProduct != nil &&
-			(prodRec.LocalProduct.Product == nil ||
-				!database.IsValid(prodRec.LocalProduct.Product.ID)) {
+		// if prodRec.LocalProduct != nil &&
+		// 	(prodRec.LocalProduct.Product == nil ||
+		// 		!database.IsValid(prodRec.LocalProduct.Product.ID)) {
+		if prodRec.LocalProduct != nil {
 			if prd := ToProduct(prodRec.LocalProduct); prd == nil {
 				return ErrRemoteProductNotFound
 			} else if prd, err := i.client.CreateProduct( // Register product
@@ -84,7 +86,14 @@ func (i *repo) CreateRecord(ctx *context.Context, db *gorm.DB, prodRecs ProductR
 
 	if len(prodRecs) == 0 {
 		return nil
-	} else if err := db.Omit(clause.Associations).CreateInBatches(prodRecs, 10).Error; err != nil {
+	} else if err := func() error {
+		for _, prodRec := range prodRecs {
+			if err := db.Create(prodRec).Error; err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
 		return err
 	}
 	return nil
@@ -116,15 +125,16 @@ func (i *repo) FirstOrCreateLocalProuctGroup(ctx *context.Context, db *gorm.DB, 
 		// Joins("ProductGroup.Cover").Preload("ProductGroup.Images").
 		Preload("ProductGroup.Products").Preload("ProductGroup.Products.Nodes").
 		// Preload("ProductGroup.Products.Cover").Preload("ProductGroup.Products.Images").
-		Joins("Cover").Preload("Gallery").Preload("Gallery.Image").
-		Where(&LocalProductGroup{Slug: reqLProductGroup.ProductGroup.Slug}).
+		Preload("Cover").Preload("Cover.Image").
+		Preload("Gallery").Preload("Gallery.Image").
+		Where(&LocalProductGroup{Slug: reqLProductGroup.Slug}).
 		Take(&storedPrdGrp).Error; errors.Is(err, gorm.ErrRecordNotFound) ||
 		storedPrdGrp.ProductGroup == nil {
 		var rprdgrp *models.ProductGroup
 		// Retrieve from remote
 		if rprdgrp, err = i.client.GetProductGroupBySlug(
 			ctx,
-			simutils.Slug(reqLProductGroup.ProductGroup.Slug),
+			reqLProductGroup.ProductGroup.Slug,
 		); err != nil && !errors.Is(err, models.ErrNotFound) {
 			return nil, err
 		} else if errors.Is(err, models.ErrNotFound) {
@@ -144,11 +154,15 @@ func (i *repo) FirstOrCreateLocalProuctGroup(ctx *context.Context, db *gorm.DB, 
 		reqProductGroupProducts := reqLProductGroup.ProductGroup.Products
 		reqLProductGroup.ProductGroup = rprdgrp
 		reqLProductGroup.ProductGroup.Products = reqProductGroupProducts
+		// Replace `Cover` and `Gallery` with remote
+		reqLProductGroup.Cover = image.FromImage(rprdgrp.Cover)
+		reqLProductGroup.Gallery = rprdgrp.Images
+		if reqLProductGroup.Cover != nil {
+			reqLProductGroup.Cover.ImageID = rprdgrp.CoverID.PID
+		}
 
 		// Write product group into the database
-		if tx := db.WithContext(ctx.Request().Context()); tx == nil {
-			return nil, err
-		} else if err := i.CreateProductGroup(ctx, tx, reqLProductGroup); err != nil {
+		if err := i.CreateProductGroup(ctx, db, reqLProductGroup); err != nil {
 			logrus.Infof("create product group in db failed %v", err)
 			return nil, err
 		} else {
@@ -161,13 +175,15 @@ func (i *repo) FirstOrCreateLocalProuctGroup(ctx *context.Context, db *gorm.DB, 
 
 // ReadByBarcode reads products bye barcode
 func (i *repo) ReadByBarcode(ctx *context.Context, db *gorm.DB, rec *ProductRecord, filters url.Values) (*ProductRecord, error) {
-	var stored ProductRecord
+	var stored ProductRecords
 	var product *models.Product
 
-	err := db.
+	if err := db.
 		Preload("LocalProduct").
 		Preload("LocalProduct.Cover").
+		Preload("LocalProduct.Cover.Image").
 		Preload("LocalProduct.Gallery").
+		Preload("LocalProduct.Gallery.LocalImage.Image").
 		Preload("LocalProduct.Product").
 		Preload("LocalProduct.Product.Nodes").
 		Preload("LocalCategory.Cover.Image").
@@ -175,34 +191,22 @@ func (i *repo) ReadByBarcode(ctx *context.Context, db *gorm.DB, rec *ProductReco
 		Preload("LocalCategory.Category").
 		Preload("LocalCategory.Category.Nodes").
 		// Preload("LocalCategory.Nodes").
-		Where("barcode = ? AND category_slug = ? ", rec.Barcode, rec.CategorySlug).
-		Take(&stored).Error
-
-	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		Where("barcode = ?", rec.Barcode).
+		Find(&stored).Error; err != nil {
 		logrus.WithFields(logrus.Fields{
 			"fn":             "Product.repo.ReadByBarcode",
 			"product_record": rec,
 		}).Errorln(err)
 		return nil, err
-	} else if errors.Is(err, gorm.ErrRecordNotFound) ||
-		stored.LocalProduct == nil ||
-		stored.LocalProduct.Product == nil {
-
-		if err := db.Table("products").Where("all_barcodes = ?", fmt.Sprintf("%s;", rec.Barcode)).Take(&product).Error; err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+	} else if len(stored) == 0 ||
+		stored[0].LocalProduct == nil ||
+		stored[0].LocalProduct.Product == nil {
+		// Get product by barcode then register
+		if products, err := i.client.GetProductsByBarcode(ctx, rec.Barcode, filters); err != nil {
 			return nil, err
-		} else if errors.Is(err, gorm.ErrRecordNotFound) {
-			// !if exsist
-			products, err := i.client.GetProductsByBarcode(ctx, rec.Barcode, filters)
-			if err != nil {
-				return nil, err
-			}
-			product, err = models.MergeProductStocks(products)
-			if err != nil {
-				return nil, err
-			}
-		}
-
-		if err := func(rec *ProductRecord, p *models.Product) error {
+		} else if product, err = models.MergeProductStocks(products); err != nil {
+			return nil, err
+		} else if err := func(rec *ProductRecord, p *models.Product) error {
 			if rec.LocalProduct == nil || rec.LocalProduct.Product == nil {
 				rec.LocalProduct = FromProduct(p)
 				return nil
@@ -215,16 +219,32 @@ func (i *repo) ReadByBarcode(ctx *context.Context, db *gorm.DB, rec *ProductReco
 			}
 		}(rec, product); err != nil {
 			return nil, err
-		}
-
-		err := i.CreateRecord(ctx, db, ProductRecords{rec})
-		if err != nil {
+		} else if err := i.CreateRecord(ctx, db, ProductRecords{rec}); err != nil {
 			return nil, err
+		} else {
+			return rec, nil
 		}
-		return rec, nil
-	}
-	return &stored, nil
+	} else if storedRec, err := func() (*ProductRecord, error) {
+		for _, s := range stored {
+			if strings.EqualFold(s.CategorySlug.ToString(), rec.CategorySlug.ToString()) {
+				return s, nil
+			}
+		}
 
+		if rec.LocalProduct == nil && stored[0].LocalProduct != nil {
+			rec.LocalProductID = stored[0].LocalProductID
+			rec.LocalProduct = stored[0].LocalProduct
+		}
+		if err := i.CreateRecord(ctx, db, ProductRecords{rec}); err != nil {
+			return nil, err
+		} else {
+			return rec, nil
+		}
+	}(); err != nil {
+		return nil, err
+	} else {
+		return storedRec, nil
+	}
 }
 
 func (i *repo) ReadImagesWithoutProduct(ctx *context.Context, db *gorm.DB, filters url.Values) (images image.LocalImages, err error) {

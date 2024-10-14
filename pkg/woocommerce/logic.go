@@ -105,8 +105,14 @@ func (l *logic) SyncProduct(ctx *context.Context, req *SyncRequest, dbconn *simu
 				} else {
 					for _, prd := range reqLProductGroup.ProductGroup.Products {
 						prd.LocalProduct.ProductGroupID = database.ToNullPID(lproductGroup.ProductGroup.ID)
-						prd.LocalProduct.Cover = lproductGroup.ProductGroup.Cover
-						prd.LocalProduct.CoverID = lproductGroup.ProductGroup.CoverID
+						if cover := lproductGroup.ProductGroup.Cover; cover != nil {
+							prd.LocalProduct.Cover = cover
+							prd.LocalProduct.CoverID = database.ToNullPID(cover.ID)
+						} else if cover := lproductGroup.Cover; cover != nil && cover.HasID() && database.IsValid(cover.ImageID) {
+							prd.LocalProduct.Cover = cover.Image
+							prd.LocalProduct.CoverID = database.ToNullPID(cover.ImageID)
+						}
+
 						prd.LocalProduct.Images = lproductGroup.ProductGroup.Images
 
 						if storedPrdRecs, err := l.SaveProduct(ctx, post, prd, categoryRecords); err != nil && !errors.Is(err, models.ErrNotFound) { // check cover and gallery
@@ -154,7 +160,7 @@ func (l *logic) SyncProduct(ctx *context.Context, req *SyncRequest, dbconn *simu
 
 func (l *logic) SaveProduct(ctx *context.Context, post *WpPost, prd *models.Product, categoryRecords category.CategoryRecords) (prdRecs product.ProductRecords, err error) {
 	for _, catRec := range categoryRecords {
-		postPrdRec := post.ToProductRecord(string(catRec.Slug), prd)
+		postPrdRec := post.ToProductRecord(catRec.Slug, prd)
 		if postPrdRec == nil {
 			// return nil, models.ErrNotFound
 			continue
@@ -286,7 +292,7 @@ func (l *logic) StoreCategoryRecord(ctx *context.Context, srcCatRec *category.Ca
 		return err
 	} else if len(catRecs) == 0 {
 		// Check from api
-		rcategory, err := l.client.GetCategoryByAlias(ctx, srcCatRec.Slug)
+		rcategory, err := l.client.GetCategoryByAlias(ctx, srcCatRec.Slug.ToString())
 		// Store category if not found
 		if errors.Is(err, models.ErrNotFound) {
 			// Get parents

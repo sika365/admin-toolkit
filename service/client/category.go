@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net/url"
 
-	simutils "github.com/alifakhimi/simple-utils-go"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cast"
 	"gitlab.sikapp.ir/sikatech/eshop/eshop-sdk-go-v1/database"
@@ -13,7 +12,7 @@ import (
 	"github.com/sika365/admin-tools/context"
 )
 
-func (c *Client) GetCategoryByAlias(ctx *context.Context, alias simutils.Slug) (category *models.Category, err error) {
+func (c *Client) GetCategoryByAlias(ctx *context.Context, slug string) (category *models.Category, err error) {
 	var (
 		categoryResp models.CategoriesResponse
 		// filters
@@ -26,7 +25,7 @@ func (c *Client) GetCategoryByAlias(ctx *context.Context, alias simutils.Slug) (
 		logEntry = logrus.
 				WithContext(ctx.Request().Context()).
 				WithFields(logrus.Fields{
-				"GET":     fmt.Sprintf("/categories/{%s}", alias),
+				"GET":     fmt.Sprintf("/categories/{%s}", slug),
 				"filters": filters,
 				"result":  &categoryResp,
 			})
@@ -34,7 +33,7 @@ func (c *Client) GetCategoryByAlias(ctx *context.Context, alias simutils.Slug) (
 
 	if resp, err := c.R().
 		SetPathParams(map[string]string{
-			"alias": alias.ToString(),
+			"alias": slug,
 		}).
 		SetQueryParamsFromValues(filters).
 		SetResult(&categoryResp).

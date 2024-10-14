@@ -54,7 +54,7 @@ func (l *logic) Store(ctx *context.Context, req *SyncRequest, doc *simscheme.Doc
 				rec = node.Data.(*CategoryRecord)
 			)
 
-			rcategory, err := l.client.GetCategoryByAlias(ctx, rec.Slug)
+			rcategory, err := l.client.GetCategoryByAlias(ctx, rec.Slug.ToString())
 			if errors.Is(err, models.ErrNotFound) {
 				if rcategory, err = l.client.StoreCategory(ctx, &models.Category{
 					Title: rec.Title,
@@ -102,7 +102,7 @@ func (l *logic) Sync(ctx *context.Context, req *SyncRequest, filters url.Values)
 			AddNewDocumentWithType(&CategoryRecord{})
 	)
 
-	if req.ScanRequest.CategoryHeaderMap.Slug == "" {
+	if !simutils.IsSlug(req.ScanRequest.CategoryHeaderMap.Slug) {
 		return nil, fmt.Errorf("key of title is not specified")
 	} else if csvFiles, err := excel.LoadExcels(ctx, req.Root, req.MaxDepth); err != nil {
 		return nil, err

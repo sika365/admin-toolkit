@@ -3,6 +3,7 @@ package node
 import (
 	"fmt"
 
+	simutils "github.com/alifakhimi/simple-utils-go"
 	"github.com/alifakhimi/simple-utils-go/simscheme"
 )
 
@@ -43,7 +44,7 @@ type NodeRecord struct {
 	Title         string           `json:"title,omitempty"`
 	Content       string           `json:"content,omitempty"`
 	Excerpt       string           `json:"excerpt,omitempty"`
-	Slug          string           `json:"slug,omitempty"`
+	Slug          simutils.Slug    `json:"slug,omitempty"`
 	Status        NodeRecordStatus `json:"status,omitempty"`
 	Barcode       string           `json:"barcode,omitempty"`
 	Path          string           `json:"path,omitempty"`

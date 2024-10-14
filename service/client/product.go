@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net/url"
 
-	simutils "github.com/alifakhimi/simple-utils-go"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cast"
 	"gitlab.sikapp.ir/sikatech/eshop/eshop-sdk-go-v1/database"
@@ -251,7 +250,7 @@ func (c *Client) MatchBarcodeByNodes(barcode string, productNodes models.Nodes) 
 	return nil, models.ErrNotFound
 }
 
-func (c *Client) GetProductGroupBySlug(ctx *context.Context, slug simutils.Slug) (*models.ProductGroup, error) {
+func (c *Client) GetProductGroupBySlug(ctx *context.Context, slug string) (*models.ProductGroup, error) {
 	var (
 		response = models.ProductGroupResponse{}
 		filters  = url.Values{
@@ -269,7 +268,7 @@ func (c *Client) GetProductGroupBySlug(ctx *context.Context, slug simutils.Slug)
 
 	if resp, err := c.R().
 		SetPathParams(map[string]string{
-			"slug": string(slug),
+			"slug": slug,
 		}).
 		SetQueryParamsFromValues(filters).
 		SetResult(&response).
@@ -308,7 +307,7 @@ func (c *Client) CreateProductGroup(ctx *context.Context, prdgrp *models.Product
 	)
 
 	if resp, err := c.R().
-		SetBody(request).
+		SetBody(&request).
 		SetResult(&response).
 		SetError(&response).
 		Post("/product_groups"); err != nil {

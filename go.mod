@@ -4,7 +4,7 @@ go 1.22.3
 
 require (
 	github.com/alifakhimi/simple-service-go v0.0.0-20240908152144-55487407ac8c
-	github.com/alifakhimi/simple-utils-go v0.0.9
+	github.com/alifakhimi/simple-utils-go v0.0.10
 	github.com/alifakhimi/simple-utils-go/simrest v0.0.0-20240929072630-4530ccd4c693
 	github.com/alifakhimi/simple-utils-go/simscheme v0.0.0-20240831155141-8f151ad65a1e
 	github.com/alitto/pond v1.9.1
@@ -12,12 +12,12 @@ require (
 	github.com/gabriel-vasile/mimetype v1.4.4
 	github.com/go-resty/resty/v2 v2.15.3
 	github.com/labstack/echo/v4 v4.12.0
-	github.com/mattn/go-sqlite3 v1.14.23
+	github.com/mattn/go-sqlite3 v1.14.24
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cast v1.7.0
 	github.com/xuri/excelize/v2 v2.8.1
-	gitlab.sikapp.ir/sikatech/eshop/eshop-sdk-go-v1 v1.12.25-dev
-	golang.org/x/exp v0.0.0-20240909161429-701f63a606c0
+	gitlab.sikapp.ir/sikatech/eshop/eshop-sdk-go-v1 v1.12.31-dev
+	golang.org/x/exp v0.0.0-20241009180824-f66d83c29e7c
 	gorm.io/driver/sqlite v1.5.6
 	gorm.io/gorm v1.25.12
 )
@@ -78,13 +78,13 @@ require (
 	github.com/xuri/nfp v0.0.0-20230919160717-d98342af3f05 // indirect
 	github.com/yaa110/go-persian-calendar v1.2.1 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	golang.org/x/crypto v0.27.0 // indirect
-	golang.org/x/net v0.29.0 // indirect
+	golang.org/x/crypto v0.28.0 // indirect
+	golang.org/x/net v0.30.0 // indirect
 	golang.org/x/sync v0.8.0 // indirect
-	golang.org/x/sys v0.25.0 // indirect
-	golang.org/x/text v0.18.0 // indirect
-	golang.org/x/time v0.6.0 // indirect
-	golang.org/x/tools v0.25.0 // indirect
+	golang.org/x/sys v0.26.0 // indirect
+	golang.org/x/text v0.19.0 // indirect
+	golang.org/x/time v0.7.0 // indirect
+	golang.org/x/tools v0.26.0 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect

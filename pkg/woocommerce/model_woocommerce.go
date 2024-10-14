@@ -3,8 +3,6 @@ package woocommerce
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
-	"net/url"
 	"strings"
 	"time"
 
@@ -167,14 +165,14 @@ func (p *WpPost) GetCategoryRecords() category.CategoryRecords {
 			continue
 		}
 
-		decodedSlug, err := url.QueryUnescape(tt.Term.Slug)
-		if err != nil {
-			fmt.Println("Error decoding string:", err)
-			continue
-		}
+		// decodedSlug, err := url.QueryUnescape(tt.Term.Slug)
+		// if err != nil {
+		// 	fmt.Println("Error decoding string:", err)
+		// 	continue
+		// }
 		catRecNode := catRecDoc.GetNode(
 			&category.CategoryRecord{
-				Slug: simutils.Slug(decodedSlug),
+				Slug: simutils.MakeSlug(tt.Term.Slug),
 			},
 		)
 
@@ -347,7 +345,7 @@ func (p *WpPost) ToProduct(
 			Cover:          cover,
 			Images:         gallery,
 			ProductGroupID: productGroupID,
-			Slug:           p.PostName,
+			Slug:           simutils.MakeSlug(p.PostName).ToString(),
 			AdditionalModel: models.AdditionalModel{
 				Active: simutils.SetToNilIfZeroValue(true),
 			},
@@ -355,7 +353,7 @@ func (p *WpPost) ToProduct(
 	}
 }
 
-func (p *WpPost) ToProductRecord(catAlias string, prd *models.Product) *product.ProductRecord {
+func (p *WpPost) ToProductRecord(catSlug simutils.Slug, prd *models.Product) *product.ProductRecord {
 	var (
 		// barcodes = p.GetBarcodes()
 		barcodes = prd.LocalProduct.Barcodes
@@ -391,7 +389,7 @@ func (p *WpPost) ToProductRecord(catAlias string, prd *models.Product) *product.
 	prdRec := &product.ProductRecord{
 		Barcode:      barcodes[0].Barcode,
 		Title:        p.PostTitle,
-		CategorySlug: catAlias,
+		CategorySlug: catSlug,
 		LocalProduct: product.FromProduct(prd),
 	}
 
@@ -415,7 +413,7 @@ func (p *WpPost) ToLocalProductGroup(topNodes models.Nodes) *product.LocalProduc
 			Error: nil,
 		},
 		Name:    p.PostTitle,
-		Slug:    p.PostName,
+		Slug:    simutils.MakeSlug(p.PostName).ToString(),
 		Excerpt: p.PostExcerpt,
 		Cover:   cover,
 		Images:  gallery,
@@ -438,7 +436,7 @@ func (p *WpPost) ToLocalProductGroup(topNodes models.Nodes) *product.LocalProduc
 	}
 
 	return &product.LocalProductGroup{
-		Slug:         p.PostName,
+		Slug:         simutils.MakeSlug(p.PostName),
 		Cover:        image.FromImage(cover),
 		Gallery:      gallery,
 		ProductGroup: productGroup,

@@ -23,7 +23,7 @@ type Gallery = ProductImages
 
 type LocalProductGroup struct {
 	models.CommonTableFields
-	Slug           string               `json:"slug,omitempty" query:"slug" param:"slug" sim:"primaryKey;"`
+	Slug           simutils.Slug        `json:"slug,omitempty" query:"slug" param:"slug" sim:"primaryKey;"`
 	CoverID        database.NullPID     `json:"cover_id,omitempty"`
 	Cover          *image.LocalImage    `json:"cover,omitempty"`
 	Gallery        models.Imagables     `json:"gallery" gorm:"polymorphic:Owner;"`
@@ -43,25 +43,43 @@ type LocalProduct struct {
 
 func FromProduct(prd *models.Product) *LocalProduct {
 	p := &LocalProduct{Product: prd.LocalProduct}
-	p.Product.ID = prd.ID
+
 	p.Product.StoreID = prd.StoreID
-	if p.Product.Slug == "" {
+
+	if !simutils.IsSlug(p.Product.Slug) {
 		p.Product.Slug = simutils.MakeSlug(prd.GetName()).ToString()
 	}
+
+	if prd.LocalProduct != nil {
+		p.Cover = image.FromImage(prd.Cover)
+
+		for _, imgbl := range prd.Images {
+			p.Gallery = append(p.Gallery, &ProductImage{
+				LocalImage: image.FromImage(imgbl.Image),
+			})
+		}
+	}
+
+	if database.IsValid(p.ID) {
+		p.Product.ID = prd.ID
+	} else if id := prd.ProductStock.ProductID; database.IsValid(id) {
+		p.Product.ID = id
+	}
+
 	return p
 }
 
 func ToProduct(prd *LocalProduct) *models.Product {
-	product := prd.Product
+	lp := prd.Product
 
 	if prd.Cover != nil {
-		product.CoverID = database.ToNullPID(prd.Cover.ImageID)
+		lp.CoverID = database.ToNullPID(prd.Cover.ImageID)
 	}
 
-	product.Images = make(models.Imagables, 0, len(prd.Gallery))
+	lp.Images = make(models.Imagables, 0, len(prd.Gallery))
 	for _, img := range prd.Gallery {
 		found := false
-		for _, i := range product.Images {
+		for _, i := range lp.Images {
 			if i.ImageID == img.ID {
 				found = true
 				break
@@ -71,16 +89,19 @@ func ToProduct(prd *LocalProduct) *models.Product {
 			continue
 		}
 
-		product.Images = append(product.Images, &models.Imagable{ImageID: img.ID})
+		lp.Images = append(lp.Images, &models.Imagable{
+			Image:   img.LocalImage.Image,
+			ImageID: img.LocalImage.ImageID,
+		})
 	}
 
 	p := &models.Product{
-		PIDModel:     models.PIDModel{ID: product.ID},
-		LocalProduct: product,
+		PIDModel:     models.PIDModel{ID: lp.ID},
+		LocalProduct: lp,
 	}
 
-	if len(product.ProductStocks) > 0 {
-		p.ProductStock = *product.ProductStocks[0]
+	if len(lp.ProductStocks) > 0 {
+		p.ProductStock = *lp.ProductStocks[0]
 	}
 
 	return p

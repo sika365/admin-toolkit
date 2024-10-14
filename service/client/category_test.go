@@ -43,7 +43,7 @@ func TestClient_GetCategoryByAlias(t *testing.T) {
 			c := &Client{
 				Client: tt.fields.Client,
 			}
-			_, err := c.GetCategoryByAlias(tt.args.ctx, tt.args.alias)
+			_, err := c.GetCategoryByAlias(tt.args.ctx, tt.args.alias.ToString())
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Client.GetCategoryByAlias() error = %v, wantErr %v", err, tt.wantErr)
 				return
